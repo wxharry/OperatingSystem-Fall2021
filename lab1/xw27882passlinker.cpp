@@ -116,26 +116,32 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
 
 void pass2(char *ifile, char *ofile, SymbolTable &st)
 {
+    int moduleCount = 0;
     int defcount, usecount, instcount, memCount = 0;
     vector<Token> tokens = getTokens(ifile);
     MemMap mmap;
+    vector<pair<int, string> > warningMsg;
     for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
     {
+        moduleCount++;
         defcount = readInt((*it++).getValue());
+        string defList[defcount];
         for (int i = 0; i < defcount; i++)
         {
             Symbol s = readSym((*it++).getValue());
             int v = readInt((*it++).getValue());
             s.setOffset(v + memCount);
-            st.push_back(s);
+            st.setModule(s.getName(), moduleCount);
+            defList[i] = s.getName();
         }
         // use list
         usecount = readInt((*it++).getValue());
-        string uselist[usecount];
+        string useList[usecount];
         for (int i = 0; i < usecount; i++)
         {
             Symbol s = readSym((*it++).getValue());
-            uselist[i] = s.getName();
+            useList[i] = s.getName();
+            st.setUsed(s.getName());
         }
 
         // program text
@@ -153,7 +159,7 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                 mmap.push_back(memCount + i, operand);
                 break;
             case 'E':
-                offset = st.getOffset(uselist[operand % 1000].c_str());
+                offset = st.getOffset(useList[operand % 1000].c_str());
                 mmap.push_back(memCount + i, operand - operand % 1000 + offset);
                 break;
             case 'R':
@@ -166,10 +172,38 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                 break;
             }
         }
+        // check defined but not used;
+        bool used[defcount];
+        for (int i = 0; i < defcount; i++)
+        {
+            used[i] = false;
+            for (int j = 0; j < usecount; j++)
+            {
+                if (defList[i] == useList[j])
+                {
+                    used[i] = true;
+                    break;
+                }
+            }
+            if (!used[i])
+            {
+                warningMsg.push_back(pair<int, string>(moduleCount, defList[i]));
+            }
+        }
+
         memCount += instcount;
     }
     mmap.print();
+    st.printWarning();
     mmap.write(ofile);
+    st.writeWarning(ofile);
+    // for (vector<pair<int, string> >::iterator i = warningMsg.begin(); i != warningMsg.end(); i++)
+    // {
+    //     printf("Warning: Module %d: %s was defined but never used", (*i).first, (*i).second.c_str());
+        
+
+    // }
+    
 }
 
 int main(int argc, char *argv[])
