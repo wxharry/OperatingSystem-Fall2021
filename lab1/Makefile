@@ -17,4 +17,5 @@ run: ./bin/$(TARGET)
 
 clean:
 	@rm -f *.o
+	@rm -f ./lab1_assign/myoutput/*
 

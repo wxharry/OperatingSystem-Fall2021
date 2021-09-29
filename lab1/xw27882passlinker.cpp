@@ -4,7 +4,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-// #include "token.h"
+#include <queue>
 #include "symbol.h"
 using namespace std;
 
@@ -40,14 +40,11 @@ char readIERA(string str)
     return str.c_str()[0];
 }
 
-int main(int argc, char *argv[])
+void pass1(char *ifile, char *ofile, SymbolTable &st)
 {
-    // __parseerror(1);
-    char filename[] = "./lab1_assign/input-1";
-    SymbolTable symbolTable = SymbolTable();
     int defcount, usecount, instcount, memCount = 0;
-
-    ifstream fin(filename);
+    // pass1
+    ifstream fin(ifile);
     string str;
     while (fin >> str)
     {
@@ -63,7 +60,7 @@ int main(int argc, char *argv[])
             fin >> str;
             int v = readInt(str);
             s.setOffset(v + memCount);
-            symbolTable.push_back(s);
+            st.push_back(s);
         }
         // use list
         fin >> str;
@@ -86,7 +83,101 @@ int main(int argc, char *argv[])
         }
         memCount += instcount;
     }
-    cout << "Symbol Table" << endl;
-    symbolTable.print();
+    st.print();
+    st.write(ofile);
+    cout << "debug" << endl;
+    fin.close();
+}
+
+void pass2(char *ifile, char *ofile, SymbolTable &st)
+{
+    int defcount, usecount, instcount, memCount = 0;
+    ifstream fin(ifile);
+    ofstream fout(ofile, ios::app);
+    string str;
+    cout << "Memeory Map" << endl;
+    fout << "Memeory Map\n";
+    while (fin >> str)
+    {
+        // Eliminate a duplicate str at the end
+        if (fin.eof())
+            break;
+
+        defcount = readInt(str);
+        for (int i = 0; i < defcount; i++)
+        {
+            fin >> str;
+            Symbol s = readSym(str);
+            fin >> str;
+            int v = readInt(str);
+        }
+        // use list
+        fin >> str;
+        usecount = readInt(str);
+        string uselist[usecount];
+        for (int i = 0; i < usecount; i++)
+        {
+            fin >> str;
+            Symbol s = readSym(str);
+            uselist[i] = s.getName();
+        }
+
+        // program text
+        fin >> str;
+        int offset;
+        char line[10];
+
+        instcount = readInt(str);
+
+        for (int i = 0; i < instcount; i++)
+        {
+            fin >> str;
+            char mode = readIERA(str);
+            fin >> str;
+            int operand = readInt(str);
+            switch (mode)
+            {
+            case 'I':
+                sprintf(line, "%03d: %04d\n", memCount + i, operand);
+                cout << line;
+                fout << line;
+                break;
+            case 'E':
+                offset = st.getOffset(uselist[operand % 1000].c_str());
+                sprintf(line, "%03d: %04d\n", memCount + i, operand - operand % 1000 + offset);
+                cout << line;
+                fout << line;
+                break;
+            case 'R':
+                sprintf(line, "%03d: %04d\n", memCount + i, operand + memCount);
+                cout << line;
+                fout << line;
+                break;
+            case 'A':
+                sprintf(line, "%03d: %04d\n", memCount + i, operand);
+                cout << line;
+                fout << line;
+                break;
+            default:
+                break;
+            }
+        }
+        memCount += instcount;
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    // __parseerror(1);
+    for (int i = 1; i < 4; i++)
+    {
+        SymbolTable symbolTable = SymbolTable();
+        char inputFile[30];
+        char outputFile[30];
+        sprintf(inputFile, "./lab1_assign/input-%d\0", i);
+        sprintf(outputFile, "./lab1_assign/myoutput/output-%d\0", i);
+        pass1(inputFile, outputFile, symbolTable);
+        pass2(inputFile, outputFile, symbolTable);
+    }
     return 0;
 }
