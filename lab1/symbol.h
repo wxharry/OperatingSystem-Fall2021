@@ -102,6 +102,7 @@ void SymbolTable::print()
     {
         printf("%s=%d\n", (*i).getName().c_str(), (*i).getOffset());
     }
+    cout << endl;
 }
 
 void SymbolTable::write(char *fn)
