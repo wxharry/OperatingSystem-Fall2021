@@ -10,8 +10,8 @@ OBJ = $(TARGET).o
 $(TARGET): $(OBJ)
 	$(CC) -o ./bin/$@ $^ $(CFLAGS)
 
-run: $(TARGET)
-	./bin/$(TARGET)
+run: ./bin/$(TARGET)
+	@./bin/$(TARGET)
 
 .PHONY: clean
 
