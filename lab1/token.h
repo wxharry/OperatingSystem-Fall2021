@@ -4,12 +4,12 @@ using namespace std;
 
 class Token
 {
-private:
+public:
     int lineNum;
     int lineOffset;
     string value;
+    Token();
 
-public:
     Token(int n, int o, string v);
     void push_back(Token t);
     int getLineNum();
@@ -17,7 +17,10 @@ public:
     string getValue();
     int getLength();
 };
+Token::Token()
+{
 
+}
 Token::Token(int n, int o, string v)
 {
     lineNum = n;

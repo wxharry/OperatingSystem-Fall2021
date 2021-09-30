@@ -13,34 +13,77 @@ using namespace std;
 
 int linenum;
 int lineoffset;
-void __parseerror(int errcode)
+char inputFile[50];
+char outputFile[50];
+void __parseerror(int errcode, Token t)
 {
-    static char *errstr[] = {
-        (char *)"NUM_EXPECTED",           // Number expect, anything >= 2^30 is not a number either
-        (char *)"SYM_EXPECTED",           // Symbol Expected
-        (char *)"ADDR_EXPECTED",          // Addressing Expected which is A/E/I/R
-        (char *)"SYM_TOO_LONG",           // Symbol Name is too long
-        (char *)"TOO_MANY_DEF_IN_MODULE", // > 16
-        (char *)"TOO_MANY_USE_IN_MODULE", // > 16
-        (char *)"TOO_MANY_INSTR",         // total num_instr exceeds memory size (512)
+    ofstream fout(outputFile);
+    string errstr[] = {
+        "NUM_EXPECTED",           // Number expect, anything >= 2^30 is not a number either
+        "SYM_EXPECTED",           // Symbol Expected
+        "ADDR_EXPECTED",          // Addressing Expected which is A/E/I/R
+        "SYM_TOO_LONG",           // Symbol Name is too long
+        "TOO_MANY_DEF_IN_MODULE", // > 16
+        "TOO_MANY_USE_IN_MODULE", // > 16
+        "TOO_MANY_INSTR",         // total num_instr exceeds memory size (512)
     };
-    printf("Parse Error line %d offset %d: %s\n", linenum, lineoffset, errstr[errcode]);
+    char msg[100];
+    sprintf(msg, "Parse Error line %d offset %d: %s\n", t.lineNum, t.lineOffset, errstr[errcode].c_str());
+    cout << msg << endl;
+    fout << msg << endl;
+    exit(0);
 }
 
-int readInt(string str)
+int readInt(Token t)
 {
-    return atoi(str.c_str());
+    int result;
+    try
+    {
+        result = atoi(t.getValue().c_str());
+    }
+    catch (const std::exception &e)
+    {
+        __parseerror(0, t);
+    }
+    return result;
 }
 
 // readSym reads a Symbol type from the front of a vector.
-Symbol readSym(string str)
+Symbol readSym(Token t)
 {
-    return Symbol(str);
+    string x = t.getValue();
+    if (x.length() > 16)
+    {
+        __parseerror(3, t);
+    }
+
+    for (int i = 0; i < x.length(); i++)
+    {
+        if (!isalpha(x[0]))
+        {
+            __parseerror(1, t);
+        }
+        else if (i > 0 && !isalnum(x[i]))
+        {
+            __parseerror(1, t);
+        }
+    }
+    return Symbol(x);
 }
 
-char readIERA(string str)
+char readIERA(Token t)
 {
-    return str.c_str()[0];
+    string x = t.getValue();
+    // if (x.length() != 2)
+    // {
+    //     __parseerror(2, t);
+    // }
+    if (x[0] != 'I' && x[0] != 'A' && x[0] != 'E' && x[0] != 'R')
+    {
+        __parseerror(2, t);
+    }
+
+    return x.c_str()[0];
 }
 
 vector<Token> getTokens(char *fn)
@@ -48,12 +91,14 @@ vector<Token> getTokens(char *fn)
     vector<Token> tokens;
     ifstream fin(fn);
     string line;
+    int len;
     char *token;
     char delim[] = " \t";
     linenum = 1;
     // tokenizer genereate a token list. The list is for parser only and will not pass to pass2.
     while (getline(fin, line))
     {
+        len = strlen(&line[0]);
         char *temp = strdup(line.c_str());
         char *remaining;
         token = strtok(temp, delim);
@@ -75,12 +120,26 @@ vector<Token> getTokens(char *fn)
         linenum++;
     }
     fin.close();
+    Token end = Token();
+    if (linenum == 1 && len == 0)
+    {
+        end.lineNum = 1;
+        end.lineOffset = 1;
+        end.value = "";
+    }
+    else
+    {
+        end.lineNum = linenum - 1;
+        end.lineOffset = len + 1;
+        end.value = "";
+    }
+    tokens.push_back(end);
     return tokens;
 }
 
 void pass1(char *ifile, char *ofile, SymbolTable &st)
 {
-    int defcount, usecount, instcount, memCount = 0, modulecount=0;
+    int defcount, usecount, instcount, memCount = 0, modulecount = 0;
     int moduleSize[10];
     ofstream fout(ofile, ios::app);
     vector<Token> tokens = getTokens(ifile);
@@ -88,13 +147,18 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
     // parser
     for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
     {
-        modulecount+=1;
+        modulecount += 1;
         // def list
-        defcount = readInt((*it++).getValue());
+        defcount = readInt(*it++);
+        if (defcount > 16)
+        {
+            __parseerror(4, *it);
+        }
+
         for (int i = 0; i < defcount; i++)
         {
-            Symbol s = readSym((*it++).getValue());
-            int v = readInt((*it++).getValue());
+            Symbol s = readSym(*it++);
+            int v = readInt(*it++);
             s.setOffset(v + memCount);
             s.setValue(v);
             s.setModule(modulecount);
@@ -108,18 +172,18 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
             }
         }
         // use list
-        usecount = readInt((*it++).getValue());
+        usecount = readInt(*it++);
         for (int i = 0; i < usecount; i++)
         {
-            Symbol s = readSym((*it++).getValue());
+            Symbol s = readSym(*it++);
         }
 
         // program text
-        instcount = readInt((*it++).getValue());
+        instcount = readInt(*it++);
         for (int i = 0; i < instcount; i++)
         {
-            char mode = readIERA((*it++).getValue());
-            int operand = readInt((*it++).getValue());
+            char mode = readIERA(*it++);
+            int operand = readInt(*it++);
         }
         memCount += instcount;
         moduleSize[modulecount] = instcount;
@@ -162,22 +226,22 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
     {
         moduleCount++;
         // def list
-        defcount = readInt((*it++).getValue());
+        defcount = readInt(*it++);
         string defList[defcount];
         for (int i = 0; i < defcount; i++)
         {
-            Symbol s = readSym((*it++).getValue());
-            int v = readInt((*it++).getValue());
+            Symbol s = readSym(*it++);
+            int v = readInt(*it++);
             s.setOffset(v + memCount);
             st.setModule(s.getName(), moduleCount);
             defList[i] = s.getName();
         }
         // use list
-        usecount = readInt((*it++).getValue());
+        usecount = readInt(*it++);
         string useList[usecount];
         for (int i = 0; i < usecount; i++)
         {
-            Symbol s = readSym((*it++).getValue());
+            Symbol s = readSym(*it++);
             useList[i] = s.getName();
             st.setUsed(s.getName());
         }
@@ -185,13 +249,13 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
         // program text
         int offset;
         char line[10];
-        instcount = readInt((*it++).getValue());
+        instcount = readInt(*it++);
         int instList[instcount];
         for (int i = 0; i < instcount; i++)
         {
             instList[i] = -1;
-            char mode = readIERA((*it++).getValue());
-            int addr = readInt((*it++).getValue());
+            char mode = readIERA(*it++);
+            int addr = readInt(*it++);
             char ml[100];
             MemLine memLine(memCount + i, addr);
             switch (mode)
@@ -306,13 +370,12 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
 int main(int argc, char *argv[])
 {
     // __parseerror(1);
-    for (int i = 1; i < 11; i++)
+    for (int i = 11; i < 21; i++)
     {
         SymbolTable symbolTable = SymbolTable();
-        char inputFile[50];
-        char outputFile[50];
+
         sprintf(inputFile, "./lab1_assign/input-%d\0", i);
-        cout << "inputFile " <<inputFile << endl;
+        cout << "inputFile " << inputFile << endl;
         sprintf(outputFile, "./lab1_assign/myoutput/output-%d\0", i);
         pass1(inputFile, outputFile, symbolTable);
         pass2(inputFile, outputFile, symbolTable);
