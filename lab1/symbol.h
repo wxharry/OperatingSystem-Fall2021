@@ -33,10 +33,8 @@ public:
 
 class SymbolTable
 {
-private:
-    vector<Symbol> symbolTable;
-
 public:
+    vector<Symbol> symbolTable;
     vector<string> warningMsg;
     SymbolTable();
     void print();
@@ -49,6 +47,7 @@ public:
     void setModule(string, int);
     bool isDefined(Symbol);
     void setMultiDefined(Symbol);
+    void setOffset(string n, int o);
 };
 
 Symbol::Symbol(string n, int v)
@@ -168,7 +167,7 @@ void SymbolTable::printWarning()
 
 void SymbolTable::write(char *fn)
 {
-    ofstream fout(fn);
+    ofstream fout(fn, ios::app);
     char line[100];
     fout << "Symbol Table\n";
     for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
@@ -227,6 +226,18 @@ void SymbolTable::setUsed(string n)
         }
     }
 }
+
+void SymbolTable::setOffset(string n, int o)
+{
+    for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
+    {
+        if ((*i).getName().c_str() == n)
+        {
+            (*i).setOffset(o);
+        }
+    }
+}
+
 
 void SymbolTable::setModule(string n, int m)
 {

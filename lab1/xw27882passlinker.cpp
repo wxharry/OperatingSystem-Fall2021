@@ -80,12 +80,15 @@ vector<Token> getTokens(char *fn)
 
 void pass1(char *ifile, char *ofile, SymbolTable &st)
 {
-    int defcount, usecount, instcount, memCount = 0;
+    int defcount, usecount, instcount, memCount = 0, modulecount=0;
+    int moduleSize[10];
+    ofstream fout(ofile, ios::app);
     vector<Token> tokens = getTokens(ifile);
 
     // parser
     for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
     {
+        modulecount+=1;
         // def list
         defcount = readInt((*it++).getValue());
         for (int i = 0; i < defcount; i++)
@@ -93,6 +96,8 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
             Symbol s = readSym((*it++).getValue());
             int v = readInt((*it++).getValue());
             s.setOffset(v + memCount);
+            s.setValue(v);
+            s.setModule(modulecount);
             if (st.isDefined(s))
             {
                 st.setMultiDefined(s);
@@ -117,7 +122,27 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
             int operand = readInt((*it++).getValue());
         }
         memCount += instcount;
+        moduleSize[modulecount] = instcount;
     }
+    // check too big
+    for (vector<Symbol>::iterator it = st.symbolTable.begin(); it != st.symbolTable.end(); it++)
+    {
+        int mno = (*it).getModule();
+        char line[100];
+        if ((*it).getValue() > moduleSize[mno] - 1)
+        {
+            sprintf(line, "Warning: Module %d: %s too big %d (max=%d) assume zero relative", mno, (*it).getName().c_str(), (*it).getValue(), moduleSize[mno] - 1);
+            cout << line << endl;
+            fout << line << endl;
+            int ms = 0;
+            for (int i = 0; i < mno; i++)
+            {
+                ms += moduleSize[i];
+            }
+            st.setOffset((*it).getName().c_str(), ms);
+        }
+    }
+    fout.close();
     st.print();
     st.write(ofile);
 }
@@ -125,8 +150,8 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
 void pass2(char *ifile, char *ofile, SymbolTable &st)
 {
     ofstream fout(ofile, ios::app);
-    cout << "Memory Table" << endl;
-    fout << "Memory Table" << endl;
+    cout << "Memory Map" << endl;
+    fout << "Memory Map" << endl;
     int moduleCount = 0;
     int defcount, usecount, instcount, memCount = 0;
     vector<Token> tokens = getTokens(ifile);
@@ -281,12 +306,13 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
 int main(int argc, char *argv[])
 {
     // __parseerror(1);
-    for (int i = 1; i < 9; i++)
+    for (int i = 1; i < 11; i++)
     {
         SymbolTable symbolTable = SymbolTable();
-        char inputFile[30];
-        char outputFile[30];
+        char inputFile[50];
+        char outputFile[50];
         sprintf(inputFile, "./lab1_assign/input-%d\0", i);
+        cout << "inputFile " <<inputFile << endl;
         sprintf(outputFile, "./lab1_assign/myoutput/output-%d\0", i);
         pass1(inputFile, outputFile, symbolTable);
         pass2(inputFile, outputFile, symbolTable);
