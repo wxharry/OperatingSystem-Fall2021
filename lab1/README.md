@@ -1,21 +1,29 @@
-You should continue processing after encountering an error/warning (other  than a syntax error) and you should be able to 
-detect multiple errors in the same run. 
-- [ ] 1.  You  should  stop  processing  if  a  syntax  error  is  detected  in  the  input,  print  a  syntax  error message  with  the  line number and the character offset in the input file where observed. A syntax error is defined as a missing token (e.g. 4 used symbols are defined but only 3 are given) or an unexpected token. Stop processing and exit. 
-- [ ] 2.  If a symbol is defined multiple times, print an error message and use the value given in the first definition. The error message is to appear as part of printing the symbol table (following symbol=value printout on the same line). 
-- [ ] 3.  If a symbol is used in an E-instruction but not defined anywhere, print an error message and use the value absolute zero. 
-- [ ] 4.  If a symbol is defined but not used, print a warning message and continue. 
-- [ ] 5.  If an address appearing in a definition exceeds the size of the module, print a warning message and treat the address given as 0 (relative to the module). 
-- [ ] 6.  If an external address is too large to reference an entry in the use list, print an error message and treat the address as immediate. 
-- [ ] 7.  If a symbol appears in a use list but is not actually used in the module (i.e., not referred to in an E-type address), print a warning message and continue. 
-- [ ] 8.  If an absolute address exceeds the size of the machine, print an error message and use the absolute value zero. 
-- [ ] 9.  If a relative address exceeds the size of the module, print an error message and use the module relative value zero 
-(that means you still need to remap “0” that to the correct absolute address). 
-- [ ] 10.  If an illegal immediate value (I) is encountered (i.e. >= 10000), print an error and convert the value to 9999.  
-- [ ] 11.  If an illegal opcode is encountered (i.e. op >= 10), print an error and convert the <opcode,operand> to 9999. 
- 
-The following exact limits are in place. 
-- [ ] a)  Accepted symbols should be upto 16 characters long (not including terminations e.g. ‘\0’), any longer symbol names 
-are erroneous. 
-- [ ] b)  a uselist or deflist should support 16 definitions, but not more and an error should be raised. 
-- [ ] c)  number of instructions are unlimited (hence the two pass system), but in reality they are limited to the machine size. 
-- [ ] d)  Symbol table should support at least 256 symbols (reference program supports exactly 256 symbols). 
+# pass 2 linker
+
+## How to Run
+use `make` command to build and run the executable files.
+You can specifiy the input file as `./bin/xw27882passlinker ./lab1_assign/input-1`
+The results are required to use standard io.
+
+## How to Test
+```
+cd lab1_assign/
+./runit.sh <your_output_directory>/ ./<you_executable_file> # generate output
+./gradeit.sh . ./<your_output_directory>/ # compare you output with the given output
+
+```
+
+
+## Write at the end
+
+This is the hardest programming I have ever done. 
+
+Honestry, it is not difficult to understand what our pass 2 linker need to do. The framwork of the program is also easy to construct and professor illustrated a psudocode of one pass procedure. 
+
+Here is the most hardest thing: *Error and warning detection* and *display in a specific order*. That truly makes things complicated. It took me several hours to program the linker, and I stayed up all night long to accomplish these (mostly because the due is today though, I admit). 
+
+I want to clarify that I am not complaining about the complex lab1, but sharing my feelings of this experience. 
+
+I had to admitted that it was painful, but it was like a climb. What you only can do is to move step by step to witness the great view on the top.
+
+Though, this project is sooo time-limited. For me, I spent a lot of figuring out what the program can do, what is the connection between the inputs and outputs. So, that gave me very little time for coding, I will try to hurry up next time. 

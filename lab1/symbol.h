@@ -171,37 +171,37 @@ void SymbolTable::printWarning()
 
 void SymbolTable::write(char *fn)
 {
-    ofstream fout(fn, ios::app);
+    // ofstream fout(fn, ios::app);
     char line[100];
-    fout << "Symbol Table\n";
+    // fout "Symbol Table\n";
     for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
     {
         sprintf(line, "%s=%d", (*i).getName().c_str(), (*i).getOffset());
-        fout << line;
+        // fout line;
         if ((*i).mutiDef)
         {
             sprintf(line, " Error: This variable is multiple times defined; first value used", (*i).getName().c_str(), (*i).getOffset());
         }
-        fout << endl;
+        // fout endl;
     }
-    fout << endl;
-    fout.close();
+    // fout endl;
+    // fout.close();
 }
 
 void SymbolTable::writeWarning(char *fn)
 {
-    ofstream fout(fn, ios::app);
+    // ofstream fout(fn, ios::app);
     char line[100];
     for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
     {
         if (!(*i).getUsed())
         {
             sprintf(line, "Warning: Module %d: %s was defined but never used\n", (*i).getModule(), (*i).getName().c_str());
-            fout << line;
+            // fout line;
         }
     }
-    fout << endl;
-    fout.close();
+    // fout endl;
+    // fout.close();
 }
 void SymbolTable::push_back(Symbol s)
 {

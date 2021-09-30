@@ -9,8 +9,9 @@ using namespace std;
 class MemLine
 {
 public:
-    int line; //value is 0 by default.
-    int addr;
+    int line; 
+    int addr;   // the original address
+    int outAddr;
     bool hasError;
     string errorMsg;
 
@@ -36,6 +37,7 @@ MemLine::MemLine(int l, int i)
 {
     line = l;
     addr = i;
+    outAddr = i;
 }
 
 int MemLine::getLine()
@@ -47,22 +49,6 @@ int MemLine::getaddr()
 {
     return addr;
 }
-
-// bool isSymNameValid(string n)
-// {
-//     if (!isalpha(n[0]))
-//     {
-//         return false;
-//     }
-//     for (string::iterator i = n.begin() + 1; i != n.end(); i++)
-//     {
-//         if (!isalpha(*i) || !isdigit(*i))
-//         {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
 
 MemMap::MemMap()
 {
@@ -87,21 +73,21 @@ void MemMap::print()
 
 void MemMap::write(char *fn)
 {
-    ofstream fout(fn, ios::app);
+    // ofstream fout(fn, ios::app);
     char line[100];
-    fout << "Memory Map\n";
+    // fout "Memory Map\n";
     for (vector<MemLine>::iterator i = memMap.begin(); i != memMap.end(); i++)
     {
         char line[100];
         sprintf(line, "%03d: %04d", (*i).getLine(), (*i).getaddr());
-        fout << line;
+        // fout line;
         if ((*i).hasError)
         {
-            fout << " " << (*i).errorMsg;
+            // fout " " << (*i).errorMsg;
         }
-        fout << endl;
+        // fout endl;
     }
-    fout.close();
+    // fout.close();
 }
 
 void MemMap::push_back(MemLine l)
