@@ -9,7 +9,6 @@ using namespace std;
 class MemLine
 {
 public:
-    string name;
     int line; //value is 0 by default.
     int addr;
     bool hasError;
@@ -84,7 +83,6 @@ void MemMap::print()
         }
         cout << endl;
     }
-    cout << endl;
 }
 
 void MemMap::write(char *fn)
@@ -103,7 +101,6 @@ void MemMap::write(char *fn)
         }
         fout << endl;
     }
-    fout << endl;
     fout.close();
 }
 

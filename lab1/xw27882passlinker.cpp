@@ -124,11 +124,15 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
 
 void pass2(char *ifile, char *ofile, SymbolTable &st)
 {
+    ofstream fout(ofile, ios::app);
+    cout << "Memory Table" << endl;
+    fout << "Memory Table" << endl;
     int moduleCount = 0;
     int defcount, usecount, instcount, memCount = 0;
     vector<Token> tokens = getTokens(ifile);
     MemMap mmap;
-    vector<pair<int, string> > warningMsg;
+    vector<string> warningMsg;
+    vector<Symbol> defvec, usevec, instvec;
     for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
     {
         moduleCount++;
@@ -157,112 +161,127 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
         int offset;
         char line[10];
         instcount = readInt((*it++).getValue());
+        int instList[instcount];
         for (int i = 0; i < instcount; i++)
         {
+            instList[i] = -1;
             char mode = readIERA((*it++).getValue());
             int addr = readInt((*it++).getValue());
+            char ml[100];
+            MemLine memLine(memCount + i, addr);
             switch (mode)
             {
             case 'I':
-                mmap.push_back(memCount + i, addr);
+            {
+                // mmap.push_back(memCount + i, addr);
+                // sprintf(ml, "%03d: %04d", memCount+i, addr);
                 break;
+            }
             case 'E':
             {
-                MemLine ml(memCount + i, addr);
-                Symbol s = Symbol(useList[addr % 1000].c_str());
                 char msg[50];
-                if (addr%1000 > usecount)
+                instList[i] = addr;
+                if (addr % 1000 > usecount - 1)
                 {
-                    string n = s.getName();
-                    ml.hasError = true;
-                    ml.errorMsg = "Error: External address exceeds length of uselist; treated as immediate";
-                    ml.addr = addr;
-                    ml.name = n;
-                }else if (!st.isDefined(s))
+                    memLine.hasError = true;
+                    memLine.errorMsg = "Error: External address exceeds length of uselist; treated as immediate";
+                    memLine.addr = addr;
+                }
+                else if (!st.isDefined(Symbol(useList[addr % 1000].c_str())))
                 {
+                    Symbol s = Symbol(useList[addr % 1000].c_str());
                     string n = s.getName();
-                    ml.hasError = true;
+                    memLine.hasError = true;
                     sprintf(msg, "Error: %s is not defined; zero used", n.c_str());
-                    ml.errorMsg = msg;
-                    ml.addr = addr - addr % 1000;
-                    ml.name = n;
+                    memLine.errorMsg = msg;
+                    memLine.addr = addr - addr % 1000;
                 }
                 else
                 {
                     offset = st.getOffset(useList[addr % 1000].c_str());
-                    ml.addr = addr - addr % 1000 + offset;
+                    memLine.addr = addr - addr % 1000 + offset;
                 }
-                mmap.push_back(ml);
-
                 break;
             }
             case 'R':
             {
-                MemLine ml(memCount + i, addr);
-                if (addr%1000 < instcount)
+                if (addr % 1000 < instcount)
                 {
-                    ml.addr = addr + memCount;
-                }else
-                {
-                    ml.hasError = true;
-                    ml.errorMsg = "Error: Relative address exceeds module size; zero used";
-                    ml.addr = addr - addr%1000 + memCount;
+                    memLine.addr = addr + memCount;
                 }
-                mmap.push_back(ml);
+                else
+                {
+                    memLine.hasError = true;
+                    memLine.errorMsg = "Error: Relative address exceeds module size; zero used";
+                    memLine.addr = addr - addr % 1000 + memCount;
+                }
                 break;
             }
             case 'A':
             {
-                MemLine ml(memCount + i, addr);
                 if (addr % 1000 >= 512)
                 {
-                    ml.hasError = true;
-                    ml.errorMsg = "Error: Absolute address exceeds machine size; zero used";
-                    ml.addr = addr - addr % 1000;
+                    memLine.hasError = true;
+                    memLine.errorMsg = "Error: Absolute address exceeds machine size; zero used";
+                    memLine.addr = addr - addr % 1000;
                 }
-                mmap.push_back(ml);
                 break;
             }
             default:
                 break;
             }
+            sprintf(ml, "%03d: %04d", memLine.line, memLine.addr);
+            cout << ml;
+            fout << ml;
+            if (memLine.hasError)
+            {
+                cout << " " << memLine.errorMsg;
+                fout << " " << memLine.errorMsg;
+            }
+            cout << endl;
+            fout << endl;
         }
-        // check defined but not used;
-        bool used[defcount];
-        for (int i = 0; i < defcount; i++)
+        // cout << endl;
+        // fout << endl;
+        // check referrd but not used;
+        bool used[usecount];
+        char wmsg[100];
+        for (int i = 0; i < usecount; i++)
         {
             used[i] = false;
-            for (int j = 0; j < usecount; j++)
+        }
+        for (int i = 0; i < instcount; i++)
+        {
+            if (instList[i] != -1 && instList[i] % 1000 < usecount)
             {
-                if (defList[i] == useList[j])
-                {
-                    used[i] = true;
-                    break;
-                }
+                used[instList[i] % 1000] = true;
             }
+        }
+        for (int i = 0; i < usecount; i++)
+        {
             if (!used[i])
             {
-                warningMsg.push_back(pair<int, string>(moduleCount, defList[i]));
+                sprintf(wmsg, "Warning: Module %d: %s appeared in the uselist but was not actually used", moduleCount, useList[i].c_str());
+                cout << wmsg << endl;
+                fout << wmsg << endl;
             }
         }
 
         memCount += instcount;
     }
-    mmap.print();
+    cout << endl;
+    fout << endl;
+    // st.warningMsg = warningMsg;
+    // mmap.print();
     st.printWarning();
-    mmap.write(ofile);
+    // mmap.write(ofile);
     st.writeWarning(ofile);
-    // for (vector<pair<int, string> >::iterator i = warningMsg.begin(); i != warningMsg.end(); i++)
-    // {
-    //     printf("Warning: Module %d: %s was defined but never used", (*i).first, (*i).second.c_str());
-
-    // }
 }
 
 int main(int argc, char *argv[])
 {
     // __parseerror(1);
-    for (int i = 1; i < 8; i++)
+    for (int i = 1; i < 9; i++)
     {
         SymbolTable symbolTable = SymbolTable();
         char inputFile[30];

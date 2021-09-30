@@ -37,6 +37,7 @@ private:
     vector<Symbol> symbolTable;
 
 public:
+    vector<string> warningMsg;
     SymbolTable();
     void print();
     void printWarning();
