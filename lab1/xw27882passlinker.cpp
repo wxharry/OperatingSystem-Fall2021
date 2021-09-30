@@ -171,12 +171,11 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
         for (int i = 0; i < defcount; i++)
         {
             Symbol s;
-            s = readSym(tokens[it]);
+            s = readSym(tokens[it++]);
             if (it >= tokens.size())
             {
-                __parseerror(1, tokens[it]);
+                __parseerror(1, tokens.back());
             }
-            it++;
             try
             {
                 int v = readInt(tokens[it++]);
