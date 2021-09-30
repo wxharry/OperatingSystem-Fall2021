@@ -8,15 +8,16 @@ using namespace std;
 
 class MemLine
 {
-private:
+public:
     string name;
     int line; //value is 0 by default.
-    int instruction;
+    int addr;
+    bool hasError;
+    string errorMsg;
 
-public:
     MemLine(int l, int i);
     int getLine();
-    int getInstruction();
+    int getaddr();
 };
 
 class MemMap
@@ -32,9 +33,10 @@ public:
     void write(char *fn);
 };
 
-MemLine::MemLine(int l, int i){
+MemLine::MemLine(int l, int i)
+{
     line = l;
-    instruction = i;
+    addr = i;
 }
 
 int MemLine::getLine()
@@ -42,9 +44,9 @@ int MemLine::getLine()
     return line;
 }
 
-int MemLine::getInstruction()
+int MemLine::getaddr()
 {
-    return instruction;
+    return addr;
 }
 
 // bool isSymNameValid(string n)
@@ -74,7 +76,13 @@ void MemMap::print()
     cout << "Memory Map" << endl;
     for (vector<MemLine>::iterator i = memMap.begin(); i != memMap.end(); i++)
     {
-        printf("%03d: %04d\n", (*i).getLine(), (*i).getInstruction());
+        char line[100];
+        printf("%03d: %04d", (*i).getLine(), (*i).getaddr());
+        if ((*i).hasError)
+        {
+            cout << " " << (*i).errorMsg;
+        }
+        cout << endl;
     }
     cout << endl;
 }
@@ -82,12 +90,18 @@ void MemMap::print()
 void MemMap::write(char *fn)
 {
     ofstream fout(fn, ios::app);
-    char line[50];
+    char line[100];
     fout << "Memory Map\n";
     for (vector<MemLine>::iterator i = memMap.begin(); i != memMap.end(); i++)
     {
-        sprintf(line, "%03d: %04d\n", (*i).getLine(), (*i).getInstruction());
+        char line[100];
+        sprintf(line, "%03d: %04d", (*i).getLine(), (*i).getaddr());
         fout << line;
+        if ((*i).hasError)
+        {
+            fout << " " << (*i).errorMsg;
+        }
+        fout << endl;
     }
     fout << endl;
     fout.close();

@@ -16,6 +16,7 @@ private:
     int moduleNum;
 
 public:
+    bool mutiDef;
     Symbol(string n);
     Symbol(string n, int v);
     Symbol(string n, int v, int m);
@@ -45,6 +46,8 @@ public:
     void writeWarning(char *fn);
     void setUsed(string n);
     void setModule(string, int);
+    bool isDefined(Symbol);
+    void setMultiDefined(Symbol);
 };
 
 Symbol::Symbol(string n, int v)
@@ -52,6 +55,7 @@ Symbol::Symbol(string n, int v)
     name = n;
     value = v;
     used = false;
+    mutiDef = false;
 }
 
 Symbol::Symbol(string n)
@@ -59,6 +63,7 @@ Symbol::Symbol(string n)
     name = n;
     value = 0;
     used = false;
+    mutiDef = false;
 }
 Symbol::Symbol(string n, int v, int m)
 {
@@ -66,6 +71,7 @@ Symbol::Symbol(string n, int v, int m)
     value = 0;
     used = false;
     moduleNum = m;
+    mutiDef = false;
 }
 
 string Symbol::getName()
@@ -137,7 +143,12 @@ void SymbolTable::print()
     cout << "Symbol Table" << endl;
     for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
     {
-        printf("%s=%d\n", (*i).getName().c_str(), (*i).getOffset());
+        printf("%s=%d", (*i).getName().c_str(), (*i).getOffset());
+        if ((*i).mutiDef)
+        {
+            printf(" Error: This variable is multiple times defined; first value used", (*i).getName().c_str(), (*i).getOffset());
+        }
+        cout << endl;
     }
     cout << endl;
 }
@@ -157,12 +168,17 @@ void SymbolTable::printWarning()
 void SymbolTable::write(char *fn)
 {
     ofstream fout(fn);
-    char line[50];
+    char line[100];
     fout << "Symbol Table\n";
     for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
     {
-        sprintf(line, "%s=%d\n", (*i).getName().c_str(), (*i).getOffset());
+        sprintf(line, "%s=%d", (*i).getName().c_str(), (*i).getOffset());
         fout << line;
+        if ((*i).mutiDef)
+        {
+            sprintf(line, " Error: This variable is multiple times defined; first value used", (*i).getName().c_str(), (*i).getOffset());
+        }
+        fout << endl;
     }
     fout << endl;
     fout.close();
@@ -218,6 +234,27 @@ void SymbolTable::setModule(string n, int m)
         if ((*i).getName().c_str() == n)
         {
             (*i).setModule(m);
+        }
+    }
+}
+
+bool SymbolTable::isDefined(Symbol s)
+{
+    for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
+    {
+        if ((*i).getName().c_str() == s.getName())
+        {
+            return true;
+        }
+    }
+}
+void SymbolTable::setMultiDefined(Symbol s)
+{
+    for (vector<Symbol>::iterator i = symbolTable.begin(); i != symbolTable.end(); i++)
+    {
+        if ((*i).getName().c_str() == s.getName())
+        {
+            (*i).mutiDef = true;
         }
     }
 }

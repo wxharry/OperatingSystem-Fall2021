@@ -86,13 +86,21 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
     // parser
     for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
     {
+        // def list
         defcount = readInt((*it++).getValue());
         for (int i = 0; i < defcount; i++)
         {
             Symbol s = readSym((*it++).getValue());
             int v = readInt((*it++).getValue());
             s.setOffset(v + memCount);
-            st.push_back(s);
+            if (st.isDefined(s))
+            {
+                st.setMultiDefined(s);
+            }
+            else
+            {
+                st.push_back(s);
+            }
         }
         // use list
         usecount = readInt((*it++).getValue());
@@ -124,6 +132,7 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
     for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
     {
         moduleCount++;
+        // def list
         defcount = readInt((*it++).getValue());
         string defList[defcount];
         for (int i = 0; i < defcount; i++)
@@ -151,23 +160,48 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
         for (int i = 0; i < instcount; i++)
         {
             char mode = readIERA((*it++).getValue());
-            int operand = readInt((*it++).getValue());
+            int addr = readInt((*it++).getValue());
             switch (mode)
             {
             case 'I':
-                sprintf(line, "%03d: %04d\n", memCount + i, operand);
-                mmap.push_back(memCount + i, operand);
+                mmap.push_back(memCount + i, addr);
                 break;
             case 'E':
-                offset = st.getOffset(useList[operand % 1000].c_str());
-                mmap.push_back(memCount + i, operand - operand % 1000 + offset);
+            {
+                MemLine ml(memCount + i, addr);
+                Symbol s = Symbol(useList[addr % 1000].c_str());
+                    char msg[50];
+                if (!st.isDefined(s))
+                {
+                    string n = s.getName();
+                    ml.hasError = true;
+                    sprintf(msg, "Error: %s is not defined; zero used", n.c_str());
+                    ml.errorMsg = msg;
+                    ml.addr = addr - addr % 1000;
+                    ml.name = n;
+                }else{
+                    offset = st.getOffset(useList[addr % 1000].c_str());
+                    ml.addr = addr - addr % 1000 + offset;
+                }
+                mmap.push_back(ml);
+
                 break;
+            }
             case 'R':
-                mmap.push_back(memCount + i, operand + memCount);
+                mmap.push_back(memCount + i, addr + memCount);
                 break;
             case 'A':
-                mmap.push_back(memCount + i, operand);
+            {
+                MemLine ml(memCount + i, addr);
+                if (addr % 1000 >= 512)
+                {
+                    ml.hasError = true;
+                    ml.errorMsg = "Error: Absolute address exceeds machine size; zero used";
+                    ml.addr = addr - addr % 1000;
+                }
+                mmap.push_back(ml);
                 break;
+            }
             default:
                 break;
             }
@@ -200,16 +234,14 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
     // for (vector<pair<int, string> >::iterator i = warningMsg.begin(); i != warningMsg.end(); i++)
     // {
     //     printf("Warning: Module %d: %s was defined but never used", (*i).first, (*i).second.c_str());
-        
 
     // }
-    
 }
 
 int main(int argc, char *argv[])
 {
     // __parseerror(1);
-    for (int i = 1; i < 4; i++)
+    for (int i = 1; i < 7; i++)
     {
         SymbolTable symbolTable = SymbolTable();
         char inputFile[30];
