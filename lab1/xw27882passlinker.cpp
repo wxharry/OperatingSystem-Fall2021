@@ -37,11 +37,17 @@ void __parseerror(int errcode, Token t)
 int readInt(Token t)
 {
     int result;
-    try
+    string x = t.getValue().c_str();
+    bool flag = true;
+    for (int i = 0; i < x.size(); i++)
     {
-        result = atoi(t.getValue().c_str());
+        flag *= isdigit(x[i]);
     }
-    catch (const std::exception &e)
+    if (flag == true)
+    {
+        return atoi(t.getValue().c_str());
+    }
+    else
     {
         __parseerror(0, t);
     }
