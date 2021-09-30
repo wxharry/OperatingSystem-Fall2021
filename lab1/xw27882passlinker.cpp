@@ -170,7 +170,7 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
             {
                 MemLine ml(memCount + i, addr);
                 Symbol s = Symbol(useList[addr % 1000].c_str());
-                    char msg[50];
+                char msg[50];
                 if (!st.isDefined(s))
                 {
                     string n = s.getName();
@@ -179,7 +179,9 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                     ml.errorMsg = msg;
                     ml.addr = addr - addr % 1000;
                     ml.name = n;
-                }else{
+                }
+                else
+                {
                     offset = st.getOffset(useList[addr % 1000].c_str());
                     ml.addr = addr - addr % 1000 + offset;
                 }
@@ -188,8 +190,20 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                 break;
             }
             case 'R':
-                mmap.push_back(memCount + i, addr + memCount);
+            {
+                MemLine ml(memCount + i, addr);
+                if (addr%1000 < instcount)
+                {
+                    ml.addr = addr + memCount;
+                }else
+                {
+                    ml.hasError = true;
+                    ml.errorMsg = "Error: Relative address exceeds module size; zero used";
+                    ml.addr = addr - addr%1000 + memCount;
+                }
+                mmap.push_back(ml);
                 break;
+            }
             case 'A':
             {
                 MemLine ml(memCount + i, addr);
