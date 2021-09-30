@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <cstring>
+#include <string.h>
 #include <vector>
 #include <queue>
 #include "symbol.h"
@@ -149,25 +150,49 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
     int moduleSize[10];
     ofstream fout(ofile, ios::app);
     vector<Token> tokens = getTokens(ifile);
-
     // parser
-    for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
+    for (int it = 0; it < tokens.size()-1;)
     {
         modulecount += 1;
         // def list
-        defcount = readInt(*it++);
-        if (defcount > 16)
+        try
         {
-            __parseerror(4, *it);
+            defcount = readInt(tokens[it++]);
+            if (defcount > 16)
+            {
+                __parseerror(4, tokens.front());
+            }
+        }
+        catch (const std::exception &e)
+        {
+            __parseerror(0, tokens.back());
         }
 
         for (int i = 0; i < defcount; i++)
         {
-            Symbol s = readSym(*it++);
-            int v = readInt(*it++);
-            s.setOffset(v + memCount);
-            s.setValue(v);
-            s.setModule(modulecount);
+            Symbol s;
+            s = readSym(tokens[it]);
+            if (it >= tokens.size())
+            {
+                __parseerror(1, tokens[it]);
+            }
+            it++;
+            try
+            {
+                int v = readInt(tokens[it++]);
+                if (it >= tokens.size())
+                {
+                    __parseerror(0, tokens.back());
+                }
+                s.setOffset(v + memCount);
+                s.setValue(v);
+                s.setModule(modulecount);
+            }
+            catch (int it)
+            {
+                __parseerror(0, tokens.back());
+            }
+
             if (st.isDefined(s))
             {
                 st.setMultiDefined(s);
@@ -178,10 +203,21 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
             }
         }
         // use list
-        usecount = readInt(*it++);
+        usecount = readInt(tokens[it]);
+        if (usecount > 16)
+        {
+            __parseerror(5, tokens[it]);
+        }
+        it++;
+
+        if (it >= tokens.size())
+        {
+            __parseerror(0, tokens.back());
+        }
+
         for (int i = 0; i < usecount; i++)
         {
-            Symbol s = readSym(*it++);
+            Symbol s = readSym(tokens[it++]);
         }
 
         // program text
@@ -193,8 +229,8 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
         it++;
         for (int i = 0; i < instcount; i++)
         {
-            char mode = readIERA(*it++);
-            int operand = readInt(*it++);
+            char mode = readIERA(tokens[it++]);
+            int operand = readInt(tokens[it++]);
         }
         memCount += instcount;
         moduleSize[modulecount] = instcount;
@@ -233,26 +269,26 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
     MemMap mmap;
     vector<string> warningMsg;
     vector<Symbol> defvec, usevec, instvec;
-    for (vector<Token>::iterator it = tokens.begin(); it != tokens.end();)
+    for (int it = 0; it < tokens.size()-1;)
     {
         moduleCount++;
         // def list
-        defcount = readInt(*it++);
+        defcount = readInt(tokens[it++]);
         string defList[defcount];
         for (int i = 0; i < defcount; i++)
         {
-            Symbol s = readSym(*it++);
-            int v = readInt(*it++);
+            Symbol s = readSym(tokens[it++]);
+            int v = readInt(tokens[it++]);
             s.setOffset(v + memCount);
             st.setModule(s.getName(), moduleCount);
             defList[i] = s.getName();
         }
         // use list
-        usecount = readInt(*it++);
+        usecount = readInt(tokens[it++]);
         string useList[usecount];
         for (int i = 0; i < usecount; i++)
         {
-            Symbol s = readSym(*it++);
+            Symbol s = readSym(tokens[it++]);
             useList[i] = s.getName();
             st.setUsed(s.getName());
         }
@@ -260,75 +296,84 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
         // program text
         int offset;
         char line[10];
-        instcount = readInt(*it++);
+        instcount = readInt(tokens[it++]);
         int instList[instcount];
         for (int i = 0; i < instcount; i++)
         {
             instList[i] = -1;
-            char mode = readIERA(*it++);
-            int addr = readInt(*it++);
+            char mode = readIERA(tokens[it++]);
+            int addr = readInt(tokens[it++]);
             char ml[100];
             MemLine memLine(memCount + i, addr);
-            switch (mode)
+            if (addr > 9999)
             {
-            case 'I':
-            {
-                // mmap.push_back(memCount + i, addr);
-                // sprintf(ml, "%03d: %04d", memCount+i, addr);
-                break;
+                memLine.hasError = true;
+                memLine.errorMsg = "Error: Illegal opcode; treated as 9999";
+                memLine.addr = 9999;
             }
-            case 'E':
+            else
             {
-                char msg[50];
-                instList[i] = addr;
-                if (addr % 1000 > usecount - 1)
+                switch (mode)
                 {
-                    memLine.hasError = true;
-                    memLine.errorMsg = "Error: External address exceeds length of uselist; treated as immediate";
-                    memLine.addr = addr;
-                }
-                else if (!st.isDefined(Symbol(useList[addr % 1000].c_str())))
+                case 'I':
                 {
-                    Symbol s = Symbol(useList[addr % 1000].c_str());
-                    string n = s.getName();
-                    memLine.hasError = true;
-                    sprintf(msg, "Error: %s is not defined; zero used", n.c_str());
-                    memLine.errorMsg = msg;
-                    memLine.addr = addr - addr % 1000;
+                    // mmap.push_back(memCount + i, addr);
+                    // sprintf(ml, "%03d: %04d", memCount+i, addr);
+                    break;
                 }
-                else
+                case 'E':
                 {
-                    offset = st.getOffset(useList[addr % 1000].c_str());
-                    memLine.addr = addr - addr % 1000 + offset;
+                    char msg[50];
+                    instList[i] = addr;
+                    if (addr % 1000 > usecount - 1)
+                    {
+                        memLine.hasError = true;
+                        memLine.errorMsg = "Error: External address exceeds length of uselist; treated as immediate";
+                        memLine.addr = addr;
+                    }
+                    else if (!st.isDefined(Symbol(useList[addr % 1000].c_str())))
+                    {
+                        Symbol s = Symbol(useList[addr % 1000].c_str());
+                        string n = s.getName();
+                        memLine.hasError = true;
+                        sprintf(msg, "Error: %s is not defined; zero used", n.c_str());
+                        memLine.errorMsg = msg;
+                        memLine.addr = addr - addr % 1000;
+                    }
+                    else
+                    {
+                        offset = st.getOffset(useList[addr % 1000].c_str());
+                        memLine.addr = addr - addr % 1000 + offset;
+                    }
+                    break;
                 }
-                break;
-            }
-            case 'R':
-            {
-                if (addr % 1000 < instcount)
+                case 'R':
                 {
-                    memLine.addr = addr + memCount;
+                    if (addr % 1000 < instcount)
+                    {
+                        memLine.addr = addr + memCount;
+                    }
+                    else
+                    {
+                        memLine.hasError = true;
+                        memLine.errorMsg = "Error: Relative address exceeds module size; zero used";
+                        memLine.addr = addr - addr % 1000 + memCount;
+                    }
+                    break;
                 }
-                else
+                case 'A':
                 {
-                    memLine.hasError = true;
-                    memLine.errorMsg = "Error: Relative address exceeds module size; zero used";
-                    memLine.addr = addr - addr % 1000 + memCount;
+                    if (addr % 1000 >= 512)
+                    {
+                        memLine.hasError = true;
+                        memLine.errorMsg = "Error: Absolute address exceeds machine size; zero used";
+                        memLine.addr = addr - addr % 1000;
+                    }
+                    break;
                 }
-                break;
-            }
-            case 'A':
-            {
-                if (addr % 1000 >= 512)
-                {
-                    memLine.hasError = true;
-                    memLine.errorMsg = "Error: Absolute address exceeds machine size; zero used";
-                    memLine.addr = addr - addr % 1000;
+                default:
+                    break;
                 }
-                break;
-            }
-            default:
-                break;
             }
             sprintf(ml, "%03d: %04d", memLine.line, memLine.addr);
             cout << ml;
@@ -381,7 +426,7 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
 int main(int argc, char *argv[])
 {
     // __parseerror(1);
-    for (int i = 11; i < 21; i++)
+    for (int i = 19; i < 21; i++)
     {
         SymbolTable symbolTable = SymbolTable();
 

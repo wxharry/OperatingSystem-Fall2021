@@ -17,6 +17,7 @@ private:
 
 public:
     bool mutiDef;
+    Symbol();
     Symbol(string n);
     Symbol(string n, int v);
     Symbol(string n, int v, int m);
@@ -50,6 +51,9 @@ public:
     void setOffset(string n, int o);
 };
 
+Symbol::Symbol()
+{
+}
 Symbol::Symbol(string n, int v)
 {
     name = n;
@@ -237,7 +241,6 @@ void SymbolTable::setOffset(string n, int o)
         }
     }
 }
-
 
 void SymbolTable::setModule(string n, int m)
 {
