@@ -171,7 +171,14 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                 MemLine ml(memCount + i, addr);
                 Symbol s = Symbol(useList[addr % 1000].c_str());
                 char msg[50];
-                if (!st.isDefined(s))
+                if (addr%1000 > usecount)
+                {
+                    string n = s.getName();
+                    ml.hasError = true;
+                    ml.errorMsg = "Error: External address exceeds length of uselist; treated as immediate";
+                    ml.addr = addr;
+                    ml.name = n;
+                }else if (!st.isDefined(s))
                 {
                     string n = s.getName();
                     ml.hasError = true;
@@ -255,7 +262,7 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
 int main(int argc, char *argv[])
 {
     // __parseerror(1);
-    for (int i = 1; i < 7; i++)
+    for (int i = 1; i < 8; i++)
     {
         SymbolTable symbolTable = SymbolTable();
         char inputFile[30];
