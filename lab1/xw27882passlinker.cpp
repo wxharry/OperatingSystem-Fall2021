@@ -185,7 +185,12 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
         }
 
         // program text
-        instcount = readInt(*it++);
+        instcount = readInt(tokens[it]);
+        if (memCount + instcount > 512)
+        {
+            __parseerror(6, tokens[it]);
+        }
+        it++;
         for (int i = 0; i < instcount; i++)
         {
             char mode = readIERA(*it++);
