@@ -155,17 +155,10 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
     {
         modulecount += 1;
         // def list
-        try
+        defcount = readInt(tokens[it++]);
+        if (defcount > 16)
         {
-            defcount = readInt(tokens[it++]);
-            if (defcount > 16)
-            {
-                __parseerror(4, tokens.front());
-            }
-        }
-        catch (const std::exception &e)
-        {
-            __parseerror(0, tokens.back());
+            __parseerror(4, tokens.front());
         }
 
         for (int i = 0; i < defcount; i++)
@@ -176,21 +169,14 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
             {
                 __parseerror(1, tokens.back());
             }
-            try
-            {
-                int v = readInt(tokens[it++]);
-                if (it >= tokens.size())
-                {
-                    __parseerror(0, tokens.back());
-                }
-                s.setOffset(v + memCount);
-                s.setValue(v);
-                s.setModule(modulecount);
-            }
-            catch (int it)
+            int v = readInt(tokens[it++]);
+            if (it >= tokens.size())
             {
                 __parseerror(0, tokens.back());
             }
+            s.setOffset(v + memCount);
+            s.setValue(v);
+            s.setModule(modulecount);
 
             if (st.isDefined(s))
             {
@@ -245,7 +231,7 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
             cout << line << endl;
             // fout line << endl;
             int ms = 0;
-            for (int i = 0; i < mno; i++)
+            for (int i = 1; i < mno; i++)
             {
                 ms += moduleSize[i];
             }
@@ -254,7 +240,7 @@ void pass1(char *ifile, char *ofile, SymbolTable &st)
     }
     // fout.close();
     st.print();
-    st.write(ofile);
+    // st.write(ofile);
 }
 
 void pass2(char *ifile, char *ofile, SymbolTable &st)
@@ -279,7 +265,6 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
             Symbol s = readSym(tokens[it++]);
             int v = readInt(tokens[it++]);
             s.setOffset(v + memCount);
-            st.setModule(s.getName(), moduleCount);
             defList[i] = s.getName();
         }
         // use list
@@ -352,7 +337,8 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
             }
             case 'R':
             {
-                if (memLine.hasError) break;  
+                if (memLine.hasError)
+                    break;
                 if (addr % 1000 < instcount)
                 {
                     memLine.outAddr = addr + memCount;
@@ -418,15 +404,16 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
     cout << endl;
     // fout endl;
     st.printWarning();
-    st.writeWarning(ofile);
+    // st.writeWarning(ofile);
 }
 
 int main(int argc, char *argv[])
-{        SymbolTable symbolTable = SymbolTable();
-        char *fn = argv[1];
-        sprintf(inputFile, "%s", fn);
-        sprintf(outputFile, "./lab1_assign/myoutput/output-1");
-        pass1(inputFile, NULL, symbolTable);
-        pass2(inputFile, NULL, symbolTable);
+{
+    SymbolTable symbolTable = SymbolTable();
+    char *fn = argv[1];
+    sprintf(inputFile, "%s", fn);
+    sprintf(outputFile, "./lab1_assign/myoutput/output-1");
+    pass1(inputFile, NULL, symbolTable);
+    pass2(inputFile, NULL, symbolTable);
     return 0;
 }
