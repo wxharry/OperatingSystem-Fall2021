@@ -274,7 +274,6 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
         {
             Symbol s = readSym(tokens[it++]);
             useList[i] = s.getName();
-            st.setUsed(s.getName());
         }
 
         // program text
@@ -330,7 +329,9 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                 }
                 else
                 {
-                    offset = st.getOffset(useList[addr % 1000].c_str());
+                    string val = useList[addr % 1000].c_str();
+                    st.setUsed(val);
+                    offset = st.getOffset(val);
                     memLine.outAddr = addr - addr % 1000 + offset;
                 }
                 break;
