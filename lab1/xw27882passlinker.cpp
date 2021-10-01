@@ -358,7 +358,7 @@ void pass2(char *ifile, char *ofile, SymbolTable &st)
                 {
                     memLine.hasError = true;
                     memLine.errorMsg = "Error: Absolute address exceeds machine size; zero used";
-                    memLine.outAddr = addr - addr % 1000;
+                    memLine.outAddr = addr / 1000 % 10 * 1000;
                 }
                 break;
             }
