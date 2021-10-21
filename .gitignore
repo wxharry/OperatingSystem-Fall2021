@@ -35,3 +35,6 @@ myoutput/
 
 # ide
 .vscode/
+
+# Input files
+lab2/lab2_assign/
