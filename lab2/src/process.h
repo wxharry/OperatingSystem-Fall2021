@@ -22,7 +22,7 @@ public:
     int IOTime;
     int CPUWaitTime;
     int cpu_burst_remaining;
-    int CPUUseTime;
+    int CPUUsedTime;
     int lastStateTime;
     Process(int id, int at, int tc, int cb, int io);
 };
@@ -37,6 +37,6 @@ Process::Process(int id, int at, int tc, int cb, int io)
     IOTime=0;
     CPUWaitTime=0;
     cpu_burst_remaining = 0;
-    CPUUseTime = 0;
+    CPUUsedTime = 0;
     lastStateTime = at;
 }

@@ -18,8 +18,8 @@ class FCFS: public Scheduler
 public:
     void add_process(Process* proc);
     Process* get_next_process();
-    FCFS(){
-        type = (char* )"FCFS";
+    FCFS(char* type){
+        this->type = type;
     };
 };
 
@@ -45,8 +45,8 @@ class LCFS: public Scheduler
 public:
     void add_process(Process* proc);
     Process* get_next_process();
-    LCFS(){
-        type = (char* )"LCFS";
+    LCFS(char* type){
+        this->type = type;
     };
 };
 
@@ -70,8 +70,8 @@ class SRTF: public Scheduler
 public:
     void add_process(Process* proc);
     Process* get_next_process();
-    SRTF(){
-        type = (char* )"SRTF";
+    SRTF(char* type){
+        this->type = type;
     };
 };
 
@@ -88,5 +88,30 @@ Process* SRTF::get_next_process(){
     }
     Process *proc = runQueue.back();
     runQueue.pop_back();
+    return proc;
+}
+
+// RR
+class RR: public Scheduler
+{
+public:
+    void add_process(Process* proc);
+    Process* get_next_process();
+    RR(char* type){
+        this->type = type;
+    };
+};
+
+void RR::add_process(Process* proc){
+    runQueue.push_back(proc);
+}
+
+Process* RR::get_next_process(){
+    if (runQueue.empty())
+    {
+        return NULL;
+    }
+    Process *proc = runQueue.front();
+    runQueue.pop_front();
     return proc;
 }

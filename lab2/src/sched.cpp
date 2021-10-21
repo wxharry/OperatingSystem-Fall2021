@@ -13,7 +13,7 @@ using namespace std;
 #define ofs ofs_num++ % 40001
 
 int verbose = 0, trace = 0, showEventQ = 0, showProcess = 0;
-int quantum = 10000;
+int quantum = 65535;
 int ofs_num = 0;
 int maxprio = 4;
 int time_cpubusy = 0;
@@ -95,11 +95,7 @@ void simulation(DES *des)
     case TRANS_TO_READY:
       if (evt->oldstate == STATE_BLOCKED)
       {
-        /* code */
-      }
-      else if (evt->oldstate == STATE_PREEMPTION)
-      {
-        /* code */
+        time_iobusy += timeInPrevState;
       }
       if (verbose)
         printf("%d %d %d: %s -> %s\n", currentTime, proc->pid, timeInPrevState, printState(evt->oldstate), printState(STATE_READY));
@@ -117,9 +113,9 @@ void simulation(DES *des)
       else
       {
         cpu_burst = myrandom(running_proc->CPUBurst);
-        if (running_proc->totalCPUTime - running_proc->CPUUseTime < cpu_burst)
+        if (running_proc->totalCPUTime - running_proc->CPUUsedTime < cpu_burst)
         {
-          cpu_burst = running_proc->totalCPUTime - running_proc->CPUUseTime;
+          cpu_burst = running_proc->totalCPUTime - running_proc->CPUUsedTime;
         }
       }
       proc->CPUWaitTime += timeInPrevState;
@@ -140,20 +136,20 @@ void simulation(DES *des)
         Event *e = new Event;
         e->oldstate = STATE_RUNNING;
         e->transition = TRANS_TO_PREEMPT;
-        e->timeStamp = currentTime + cpu_burst;
+        e->timeStamp = currentTime + quantum;
         e->process = running_proc;
         des->insert_sort(e);
       }
-      time_cpubusy += cpu_burst;
       if (verbose)
-        printf("%d %d %d: %s -> %s cb=%d rem=%d prio=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_READY), printState(STATE_RUNNING), cpu_burst, proc->totalCPUTime - proc->CPUUseTime, proc->dynamicPriority);
+        printf("%d %d %d: %s -> %s cb=%d rem=%d prio=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_READY), printState(STATE_RUNNING), cpu_burst, proc->totalCPUTime - proc->CPUUsedTime, proc->dynamicPriority);
       break;
 
     case TRANS_TO_BLOCK:
       running_proc = NULL;
-      proc->CPUUseTime += proc->cpu_burst_remaining;
+      time_cpubusy += timeInPrevState;
+      proc->CPUUsedTime += proc->cpu_burst_remaining;
       proc->cpu_burst_remaining -= timeInPrevState;
-      if (proc->CPUUseTime == proc->totalCPUTime)
+      if (proc->CPUUsedTime == proc->totalCPUTime)
       {
         proc->finishTime = currentTime;
         proc->state = STATE_DONE;
@@ -172,10 +168,9 @@ void simulation(DES *des)
         e->process = proc;
         e->timeStamp = currentTime + io_burst;
         proc->IOTime += io_burst;
-        time_iobusy += io_burst;
         des->insert_sort(e);
         if (verbose)
-          printf("%d %d %d: %s -> %s  ib=%d rem=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_RUNNING), printState(STATE_BLOCKED), io_burst, proc->totalCPUTime - proc->CPUUseTime);
+          printf("%d %d %d: %s -> %s  ib=%d rem=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_RUNNING), printState(STATE_BLOCKED), io_burst, proc->totalCPUTime - proc->CPUUsedTime);
       }
       if (trace)
       {
@@ -191,13 +186,21 @@ void simulation(DES *des)
       break;
 
     case TRANS_TO_PREEMPT:
-
+      proc->cpu_burst_remaining-=timeInPrevState;
+      proc->CPUUsedTime += timeInPrevState;
+      time_cpubusy += timeInPrevState;
+      proc->state = STATE_PREEMPTION;
+      scheduler->add_process(proc);
+      running_proc = NULL;
+      call_scheduler = true;
+      if (verbose)
+        printf("%d %d %d: %s -> %s  cb=%d rem=%d prio=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_RUNNING), printState(STATE_READY), proc->cpu_burst_remaining, proc->totalCPUTime - proc->CPUUsedTime, proc->dynamicPriority);
       break;
     }
+    delete evt;
     if (call_scheduler)
     {
-      if (des->get_next_event_time() == currentTime)
-        continue;
+      if (des->get_next_event_time() == currentTime) continue;
       call_scheduler = false;
       if (running_proc == NULL)
       {
@@ -219,7 +222,6 @@ void simulation(DES *des)
 int main(int argc, char **argv)
 {
   char *schedspec = NULL;
-  int quantum, maxprio;
   int c;
   while ((c = getopt(argc, argv, "vteps:")) != -1)
     switch (c)
@@ -241,18 +243,26 @@ int main(int argc, char **argv)
       schedspec = optarg;
       string spec(optarg);
       char type = schedspec[0];
-      sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d:%d", &quantum, &maxprio);
+      // sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d:%d", &quantum, &maxprio);
       switch (type)
       {
       case 'F':
-        scheduler = new FCFS();
+        scheduler = new FCFS((char*)"FCFS");
         break;
       case 'L':
-        scheduler = new LCFS();
+        scheduler = new LCFS((char*)"LCFS");
         break;
       case 'S':
-        scheduler = new SRTF();
+        scheduler = new SRTF((char*)"SRTF");
         break;
+      case 'R':
+        {
+          sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d", &quantum);
+          char name[10];
+          int vv = sprintf(name, "RR %d", quantum);
+          scheduler = new RR(name);
+          break;
+        }
       default:
         break;
       }
