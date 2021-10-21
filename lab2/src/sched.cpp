@@ -250,6 +250,9 @@ int main(int argc, char **argv)
       case 'L':
         scheduler = new LCFS();
         break;
+      case 'S':
+        scheduler = new SRTF();
+        break;
       default:
         break;
       }

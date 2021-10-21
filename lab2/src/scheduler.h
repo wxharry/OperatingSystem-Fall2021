@@ -64,13 +64,29 @@ Process* LCFS::get_next_process(){
     return proc;
 }
 
-class LCFS: public Scheduler
+// SRTF
+class SRTF: public Scheduler
 {
 public:
     void add_process(Process* proc);
     Process* get_next_process();
-    LCFS(){
-        type = (char* )"LCFS";
+    SRTF(){
+        type = (char* )"SRTF";
     };
 };
 
+void SRTF::add_process(Process* proc){
+    int i = 0;
+    for (i; i < runQueue.size() && proc->cpu_burst_remaining >= runQueue[i]->cpu_burst_remaining; ++i);
+    runQueue.insert(runQueue.begin() + i, proc);
+}
+
+Process* SRTF::get_next_process(){
+    if (runQueue.empty())
+    {
+        return NULL;
+    }
+    Process *proc = runQueue.back();
+    runQueue.pop_back();
+    return proc;
+}
