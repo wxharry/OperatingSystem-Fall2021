@@ -77,7 +77,7 @@ public:
 
 void SRTF::add_process(Process* proc){
     int i = 0;
-    for (i; i < runQueue.size() && proc->cpu_burst_remaining >= runQueue[i]->cpu_burst_remaining; ++i);
+    for (i; i < runQueue.size() && proc->totalCPUTime- proc->CPUUsedTime >= runQueue[i]->totalCPUTime - runQueue[i] ->CPUUsedTime; ++i);
     runQueue.insert(runQueue.begin() + i, proc);
 }
 
@@ -86,8 +86,8 @@ Process* SRTF::get_next_process(){
     {
         return NULL;
     }
-    Process *proc = runQueue.back();
-    runQueue.pop_back();
+    Process *proc = runQueue.front();
+    runQueue.pop_front();
     return proc;
 }
 

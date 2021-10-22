@@ -7,7 +7,8 @@ OBJ = $(TARGET).o
 DIR_BIN = bin
 FLAG = vep
 S = F
-INPUTFILE = lab2_assign/input0
+NUM = 0
+INPUTFILE = lab2_assign/input$(NUM)
 RANDFILE = lab2_assign/rfile
 $(DIR)/%.o: $(DIR)/%.cpp $(DIR)/$(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -21,11 +22,11 @@ $(DIR_BIN):
 run: $(DIR_BIN) $(TARGET)
 	$(DIR_BIN)/$(TARGET) -$(FLAG) -s$(S) $(INPUTFILE) $(RANDFILE)
 
-.PHONY: clean
-
 diff: run
 	make run -s > myoutput
-	diff myoutput lab2_assign/refout_v/out_0_$(S) > log.txt
+	diff myoutput lab2_assign/refout_v/out_$(NUM)_$(S) > log.txt
+
+.PHONY: clean
 
 clean:
 	rm -f *.o

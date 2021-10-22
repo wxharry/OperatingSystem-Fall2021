@@ -204,7 +204,6 @@ void simulation(DES *des)
     {
       if (!des->eventQueue.empty()&&des->get_next_event_time() == currentTime)
         continue;
-      call_scheduler = false;
       if (running_proc == NULL)
       {
         running_proc = scheduler->get_next_process();
@@ -217,6 +216,7 @@ void simulation(DES *des)
         e->transition = TRANS_TO_RUN;
         des->insert_sort(e);
       }
+      call_scheduler = false;
     }
   };
 }
