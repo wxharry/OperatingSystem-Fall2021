@@ -22,6 +22,7 @@ int total_Turnaround_time = 0;
 int total_CPU_wait_time = 0;
 int finishtime;
 int num_processes = 0;
+int io=0;
 int n;
 bool call_scheduler;
 Scheduler *scheduler;
@@ -75,7 +76,7 @@ void simulation(DES *des)
   Process *proc;
   Process *running_proc = NULL;
   Event *evt = new Event();
-  int currentTime = 0, timeInPrevState = 0, state_start_time = 0;
+  int currentTime = 0, timeInPrevState = 0, state_start_time = 0, io_start_time=0;
   bool flag = false;
   while (true)
   {
@@ -96,7 +97,7 @@ void simulation(DES *des)
       if (evt->oldstate == STATE_BLOCKED)
       {
         proc->dynamicPriority = proc->staticPriority - 1;
-        time_iobusy += timeInPrevState;
+        if(--io == 0) time_iobusy += currentTime - io_start_time;
       }
       if (verbose)
         printf("%d %d %d: %s -> %s\n", currentTime, proc->pid, timeInPrevState, printState(evt->oldstate), printState(STATE_READY));
@@ -168,6 +169,7 @@ void simulation(DES *des)
         e->process = proc;
         e->timeStamp = currentTime + io_burst;
         proc->IOTime += io_burst;
+        if(io++==0) io_start_time=currentTime;    
         des->insert_sort(e);
         if (verbose)
           printf("%d %d %d: %s -> %s  ib=%d rem=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_RUNNING), printState(STATE_BLOCKED), io_burst, proc->totalCPUTime - proc->CPUUsedTime);
@@ -200,7 +202,7 @@ void simulation(DES *des)
     delete evt; evt=NULL;
     if (call_scheduler)
     {
-      if (des->get_next_event_time() == currentTime)
+      if (!des->eventQueue.empty()&&des->get_next_event_time() == currentTime)
         continue;
       call_scheduler = false;
       if (running_proc == NULL)
