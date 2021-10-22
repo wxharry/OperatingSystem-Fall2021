@@ -23,6 +23,10 @@ run: $(DIR_BIN) $(TARGET)
 
 .PHONY: clean
 
+diff: run
+	make run -s > myoutput
+	diff myoutput lab2_assign/refout_v/out_0_$(S) > log.txt
+
 clean:
 	rm -f *.o
 	rm -f $(DIR)/*.o

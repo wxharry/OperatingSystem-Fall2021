@@ -21,7 +21,7 @@ int time_iobusy = 0;
 int total_Turnaround_time = 0;
 int total_CPU_wait_time = 0;
 int finishtime;
-int num_processes=0;
+int num_processes = 0;
 int n;
 bool call_scheduler;
 Scheduler *scheduler;
@@ -75,7 +75,7 @@ void simulation(DES *des)
   Process *proc;
   Process *running_proc = NULL;
   Event *evt = new Event();
-  int currentTime=0, timeInPrevState=0, state_start_time=0;
+  int currentTime = 0, timeInPrevState = 0, state_start_time = 0;
   bool flag = false;
   while (true)
   {
@@ -95,6 +95,7 @@ void simulation(DES *des)
     case TRANS_TO_READY:
       if (evt->oldstate == STATE_BLOCKED)
       {
+        proc->dynamicPriority = proc->staticPriority - 1;
         time_iobusy += timeInPrevState;
       }
       if (verbose)
@@ -104,6 +105,8 @@ void simulation(DES *des)
       break;
     case TRANS_TO_RUN:
       proc->state = STATE_RUNNING;
+      proc->CPUWaitTime += timeInPrevState;
+      total_CPU_wait_time += timeInPrevState;
       running_proc = proc;
       int cpu_burst;
       if (running_proc->cpu_burst_remaining > 0)
@@ -118,10 +121,7 @@ void simulation(DES *des)
           cpu_burst = running_proc->totalCPUTime - running_proc->CPUUsedTime;
         }
       }
-      proc->CPUWaitTime += timeInPrevState;
-      total_CPU_wait_time += timeInPrevState;
       proc->cpu_burst_remaining = cpu_burst;
-
       if (cpu_burst <= quantum)
       {
         Event *e = new Event;
@@ -186,21 +186,22 @@ void simulation(DES *des)
       break;
 
     case TRANS_TO_PREEMPT:
-      proc->cpu_burst_remaining-=timeInPrevState;
+      proc->cpu_burst_remaining -= timeInPrevState;
       proc->CPUUsedTime += timeInPrevState;
       time_cpubusy += timeInPrevState;
+      if (verbose)
+        printf("%d %d %d: %s -> %s  cb=%d rem=%d prio=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_RUNNING), printState(STATE_READY), proc->cpu_burst_remaining, proc->totalCPUTime - proc->CPUUsedTime, proc->dynamicPriority);
       proc->state = STATE_PREEMPTION;
       scheduler->add_process(proc);
       running_proc = NULL;
       call_scheduler = true;
-      if (verbose)
-        printf("%d %d %d: %s -> %s  cb=%d rem=%d prio=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_RUNNING), printState(STATE_READY), proc->cpu_burst_remaining, proc->totalCPUTime - proc->CPUUsedTime, proc->dynamicPriority);
       break;
     }
-    delete evt;
+    delete evt; evt=NULL;
     if (call_scheduler)
     {
-      if (des->get_next_event_time() == currentTime) continue;
+      if (des->get_next_event_time() == currentTime)
+        continue;
       call_scheduler = false;
       if (running_proc == NULL)
       {
@@ -217,7 +218,6 @@ void simulation(DES *des)
     }
   };
 }
-
 
 int main(int argc, char **argv)
 {
@@ -247,22 +247,30 @@ int main(int argc, char **argv)
       switch (type)
       {
       case 'F':
-        scheduler = new FCFS((char*)"FCFS");
+        scheduler = new FCFS((char *)"FCFS");
         break;
       case 'L':
-        scheduler = new LCFS((char*)"LCFS");
+        scheduler = new LCFS((char *)"LCFS");
         break;
       case 'S':
-        scheduler = new SRTF((char*)"SRTF");
+        scheduler = new SRTF((char *)"SRTF");
         break;
       case 'R':
-        {
-          sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d", &quantum);
-          char name[10];
-          int vv = sprintf(name, "RR %d", quantum);
-          scheduler = new RR(name);
-          break;
-        }
+      {
+        sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d", &quantum);
+        char name[10];
+        int foo = sprintf(name, "RR %d", quantum);
+        scheduler = new RR(name);
+        break;
+      }
+      case 'P':
+      {
+        sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d:%d", &quantum, &maxprio);
+        char name[10];
+        int foo = sprintf(name, "PRIO %d", quantum);
+        scheduler = new PRIO(name, maxprio);
+        break;
+      }
       default:
         break;
       }
@@ -296,7 +304,7 @@ int main(int argc, char **argv)
   }
 
   simulation(&des);
-  
+
   printf("%s\n", scheduler->type);
   for (int i = 0; i < procQ.size(); ++i)
   {
@@ -305,12 +313,12 @@ int main(int argc, char **argv)
   }
 
   num_processes = procQ.size();
-  double cpu_util   = 100.0 * (time_cpubusy  / (double) finishtime); 
-  double io_util    = 100.0 * (time_iobusy   / (double) finishtime); 
-  double avg_TT =  (total_Turnaround_time / (double) num_processes);
-  double avg_WT =  (total_CPU_wait_time / (double) num_processes);
-  double throughput = 100.0 * (num_processes / (double) finishtime); 
+  double cpu_util = 100.0 * (time_cpubusy / (double)finishtime);
+  double io_util = 100.0 * (time_iobusy / (double)finishtime);
+  double avg_TT = (total_Turnaround_time / (double)num_processes);
+  double avg_WT = (total_CPU_wait_time / (double)num_processes);
+  double throughput = 100.0 * (num_processes / (double)finishtime);
   printf("SUM: %d %.2lf %.2lf %.2lf %.2lf %.3lf\n", finishtime, cpu_util, io_util, avg_TT, avg_WT, throughput);
-  
+
   return 0;
 }

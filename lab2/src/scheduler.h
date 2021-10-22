@@ -115,3 +115,74 @@ Process* RR::get_next_process(){
     runQueue.pop_front();
     return proc;
 }
+
+// PRIO 
+class PRIO: public Scheduler
+{
+public:
+    deque< deque <Process*> > *activeQueue;
+    deque< deque <Process*> > *expiredQueue;
+    int maxPrior;
+    void add_process(Process* proc);
+    Process* get_next_process();
+    PRIO(char* type, int maxPrior);
+    bool runQIsEmpty();
+    void swap();
+};
+
+PRIO::PRIO(char* type, int maxPrior){
+    this->type = type;
+    this->maxPrior = maxPrior;
+    activeQueue = new deque< deque <Process*> > (maxPrior);
+    expiredQueue = new deque< deque <Process*> > (maxPrior);
+};
+
+void PRIO::add_process(Process* proc){
+    if (proc->state == STATE_PREEMPTION) -- proc->dynamicPriority;
+    proc->state = STATE_READY;    
+    if (proc->dynamicPriority < 0)
+    {
+        int prio = proc->staticPriority - 1;
+        proc->dynamicPriority = prio;
+        (*expiredQueue)[prio].push_back(proc);
+    }
+    else
+    {
+        (*activeQueue)[proc->dynamicPriority].push_back(proc);
+    }    
+}
+
+bool PRIO::runQIsEmpty(){
+    for (int i = 0; i < maxPrior; ++i)
+    {
+        if (!(*activeQueue)[i].empty())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+void PRIO::swap(){
+    deque< deque <Process*> > *temp = activeQueue;
+    activeQueue = expiredQueue;
+    expiredQueue = temp;
+}
+
+Process* PRIO::get_next_process(){
+    Process* r=NULL;
+    if (runQIsEmpty())
+    {
+        this->swap();
+    }
+    for (int i = 0; i < maxPrior; ++i)
+    {
+        if (!(*activeQueue)[i].empty())
+        {
+            r=(*activeQueue)[i].front();
+            (*activeQueue)[i].pop_front();
+        }
+    }
+    return r;
+}
+
+
