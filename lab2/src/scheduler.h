@@ -174,12 +174,13 @@ Process* PRIO::get_next_process(){
     {
         this->swap();
     }
-    for (int i = 0; i < maxPrior; ++i)
+    for (int i = maxPrior - 1; i > -1; --i)
     {
         if (!(*activeQueue)[i].empty())
         {
             r=(*activeQueue)[i].front();
             (*activeQueue)[i].pop_front();
+            return r;
         }
     }
     return r;
