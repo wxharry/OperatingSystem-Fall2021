@@ -25,6 +25,7 @@ int num_processes = 0;
 int io=0;
 int n;
 bool call_scheduler;
+bool preemptive=false;
 Scheduler *scheduler;
 vector<int> randvals;
 
@@ -99,8 +100,28 @@ void simulation(DES *des)
         proc->dynamicPriority = proc->staticPriority - 1;
         if(--io == 0) time_iobusy += currentTime - io_start_time;
       }
-      if (verbose)
-        printf("%d %d %d: %s -> %s\n", currentTime, proc->pid, timeInPrevState, printState(evt->oldstate), printState(STATE_READY));
+      if (verbose) printf("%d %d %d: %s -> %s\n", currentTime, proc->pid, timeInPrevState, printState(evt->oldstate), printState(STATE_READY));
+      if (preemptive && running_proc != NULL){
+        int nextTime = des->processNextTime(running_proc);
+        nextTime = nextTime < 0 ? currentTime : nextTime;
+        if (proc->dynamicPriority > running_proc->dynamicPriority && currentTime < nextTime)
+        {
+          des->removeNextEvent(running_proc);
+          Event *e = new Event;
+          e->timeStamp = currentTime;
+          e->oldstate = STATE_RUNNING;
+          e->transition = TRANS_TO_PREEMPT;
+          e->process = running_proc;
+          des->insert_sort(e);
+          if(verbose) printf("---> PRIO preemption %d by %d ? %d TS=%d now=%d) --> %s\n", running_proc->pid, proc->pid, proc->dynamicPriority > running_proc->dynamicPriority, nextTime, currentTime, (char*)"YES");
+        }
+        else
+        {
+          if(verbose) printf("---> PRIO preemption %d by %d ? %d TS=%d now=%d) --> %s\n", running_proc->pid, proc->pid, proc->dynamicPriority > running_proc->dynamicPriority, nextTime, currentTime, (char*)"NO");
+        }
+        
+      }
+      
       scheduler->add_process(proc);
       call_scheduler = true;
       break;
@@ -144,7 +165,6 @@ void simulation(DES *des)
       if (verbose)
         printf("%d %d %d: %s -> %s cb=%d rem=%d prio=%d\n", currentTime, proc->pid, timeInPrevState, printState(STATE_READY), printState(STATE_RUNNING), cpu_burst, proc->totalCPUTime - proc->CPUUsedTime, proc->dynamicPriority);
       break;
-
     case TRANS_TO_BLOCK:
       running_proc = NULL;
       time_cpubusy += timeInPrevState;
@@ -245,7 +265,6 @@ int main(int argc, char **argv)
       schedspec = optarg;
       string spec(optarg);
       char type = schedspec[0];
-      // sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d:%d", &quantum, &maxprio);
       switch (type)
       {
       case 'F':
@@ -271,6 +290,15 @@ int main(int argc, char **argv)
         char name[10];
         int foo = sprintf(name, "PRIO %d", quantum);
         scheduler = new PRIO(name, maxprio);
+        break;
+      }
+      case 'E':
+      {
+        sscanf(spec.substr(1, spec.size() - 1).c_str(), "%d:%d", &quantum, &maxprio);
+        char name[10];
+        int foo = sprintf(name, "PREPRIO %d", quantum);
+        scheduler = new PrePRIO(name, maxprio);
+        preemptive = true;
         break;
       }
       default:
