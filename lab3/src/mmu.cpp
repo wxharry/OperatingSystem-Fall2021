@@ -44,7 +44,7 @@ void readInputFile(char* filename, vector<Process>& processes, vector<pair<char,
   ifstream fin(filename);
   string line;
   int start_vpage, end_vpage, write_protected, file_mapped;
-  
+  // read processes
   getline(fin, line);
   while(line[0] == '#') getline(fin, line);
   int processNum = stoi(line);
@@ -53,7 +53,9 @@ void readInputFile(char* filename, vector<Process>& processes, vector<pair<char,
     getline(fin, line);
     while(line[0] == '#') getline(fin, line);
     int vmaNum = stoi(line);
-    Process p;
+    Process p(i);
+    p.page_table = new pte_t[MAX_VPAGES];
+    // read vma for each process
     for (int j = 0; j < vmaNum; j++)
     {
       getline(fin, line);
@@ -63,9 +65,11 @@ void readInputFile(char* filename, vector<Process>& processes, vector<pair<char,
     }
     processes.push_back(p);
   }
+  // read instructions
+  while(line[0] == '#') getline(fin, line);
   while (getline(fin, line))
   {
-    while(line[0] == '#') getline(fin, line);
+    if(line[0] == '#') continue;
     char cmd; int page;
     sscanf(line.c_str(), "%c %d", &cmd, &page);
     instructions.push_back(pair<char, int>({cmd, page}));
@@ -73,25 +77,6 @@ void readInputFile(char* filename, vector<Process>& processes, vector<pair<char,
   
 }
 
-typedef struct {
-  unsigned PRESENT;
-  unsigned REFERENCED;
-  unsigned MODIFIED;
-  unsigned WRITE_PROTECT;
-  unsigned PAGEDOUT;
-} pte_t;          // can only be total of 32-bit size and will check on this 
-
-
-typedef struct { 
-  int pid = -1;
-  int vpage = -1;
-
-  // // other stuff you probably want to add
-  // bool mapped = false;
-  // int index;
-  // unsigned int age : 32; // idk why this is 32 bit might not need to be
-  // unsigned int timestamp = 0;
- } frame_t;
  
 frame_t *frame_table = new frame_t[MAX_FRAMES]; 
 pte_t *page_table = new pte_t[MAX_VPAGES];  // a per process array of fixed size=64 of pte_t  not pte_t pointers ! 
@@ -105,25 +90,47 @@ pte_t *page_table = new pte_t[MAX_VPAGES];  // a per process array of fixed size
 //   if (frame == NULL) frame = THE_PAGER->select_victim_frame(); 
 //        return frame; 
 // } 
-
+vector<pair<char, int> > instructions;
+vector<Process> processes;
 void simulation(){
-  // while (get_next_instruction(&operation, &vpage)) { 
-  //       // handle special case of “c” and “e” instruction 
-  //       // now the real instructions for read and write 
-  //       pte_t *pte = &current_process->page_table[vpage]; 
-  //       if ( ! pte->present) { 
-  //           // this in reality generates the page fault exception and now you execute 
-  //           // verify this is actually a valid page in a vma if not raise error and next inst  
-  //           frame_t *newframe = get_frame(); 
-  
-  //           //-> figure out if/what to do with old frame if it was mapped 
-  //           //   see general outline in MM-slides under Lab3 header and writeup below 
-  //           //   see whether and how to bring in the content of the access page. 
-  //       } 
+  for (int i=0; i<instructions.size(); i++)
+  {
+    auto ins = instructions[i];
+    printf("%d: ==> %c %d\n", i, ins.first, ins.second);
+    Process *current_process;
+    int vpage;
+    char operation=ins.first;
+    if(operation=='c'){
+      current_process = &processes[ins.second];
+    }
+    else if (operation=='e')
+    {
+
+    }
+    else
+    {
+      vpage=ins.second;
+      pte_t *pte = &current_process->page_table[vpage];
+      if (!pte->present) { 
+        VMA *vma_t = current_process->getAccessibleVMA(vpage);
+        if (!vma_t)
+        {
+          pte->file_map = vma_t->file_mapped;
+          pte->write_protect = vma_t->write_protected;
+        }
+        // this in reality generates the page fault exception and now you execute 
+        // verify this is actually a valid page in a vma if not raise error and next inst  
+        // frame_t *newframe = get_frame(); 
+
+        //-> figure out if/what to do with old frame if it was mapped 
+        //   see general outline in MM-slides under Lab3 header and writeup below 
+        //   see whether and how to bring in the content of the access page. 
+      } 
+    }
   //       // check write protection 
   //       // simulate instruction execution by hardware by updating the R/M PTE bits  
   //       update_pte(read/modify) bits based on operations.   
-  // }   
+  }
 }
 
 int main(int argc, char **argv)
@@ -163,16 +170,7 @@ int main(int argc, char **argv)
     }
   char *infile = argv[optind], *randfile = argv[optind + 1];
   readRandomNumbers(randfile);
-  vector<Process> processes;
-  vector<pair<char, int> > instructions;
   readInputFile(infile, processes, instructions);
-  for (auto &p : processes)
-  {
-    p.display();
-  }
-  
-  for (int i = 0; i < instructions.size(); i++)
-    cout << instructions[i].first << ' ' << instructions[i].second << endl;
   simulation();
   return 0;
 }

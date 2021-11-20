@@ -2,7 +2,7 @@ CC=g++
 CFLAGS=-I.
 TARGET = mmu
 NUM=1
-OBJ_DIR   = bin
+OBJ_DIR   = objects
 SRC       = $(call rwildcard, src, *.cpp, *.h)
 FRAMES = 4
 FLAGS = -f$(FRAMES) -a –oOPFS
@@ -34,5 +34,5 @@ run: $(TARGET)
 .PHONY: all build clean debug release
 
 clean:
-	-@rm -rvf $(OBJ_DIR)/*
+	-@rm -rvf $(OBJ_DIR)/* 
 	$(RM) $(TARGET)
