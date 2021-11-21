@@ -4,6 +4,7 @@
 #include <cstdio>
 using namespace std;
 
+extern int MAX_VPAGES;
 VMA::VMA(int svp, int evp, int wp, int fm)
 {
   this->start_vpage = svp;
@@ -11,12 +12,34 @@ VMA::VMA(int svp, int evp, int wp, int fm)
   this->write_protected = wp;
   this->file_mapped = fm;
 }
+
 Process::Process(int id){
   this->pid = id;
+  this->page_table = new pte_t[MAX_VPAGES];
+  for (int i = 0; i < MAX_VPAGES; i++)
+  {
+    page_table[i].frameIndex = 0;
+    page_table[i].file_map = 0;
+    page_table[i].modified=0;
+    page_table[i].pageout=0;
+    page_table[i].present=0;
+    page_table[i].referenced=0;
+    page_table[i].write_protect=0;
+  }
 }
 
 Process::Process(){
-
+  this->page_table = new pte_t[MAX_VPAGES];
+  for (int i = 0; i < MAX_VPAGES; i++)
+  {
+    page_table[i].frameIndex=0;
+    page_table[i].file_map=0;
+    page_table[i].modified=0;
+    page_table[i].pageout=0;
+    page_table[i].present=0;
+    page_table[i].referenced=0;
+    page_table[i].write_protect=0;
+  }
 }
 
 void Process::display(){

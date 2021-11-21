@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include "process.h"
+#include "pager.h"
 
 using namespace std;
 
@@ -18,7 +19,13 @@ int MAX_FRAMES=128;
 int MAX_VPAGES=64;
 int ofs;
 vector<int> randvals;
- 
+vector<pair<char, int> > instructions;
+vector<Process> processes;
+Pager *THE_PAGER;
+pte_t *page_table = new pte_t[MAX_VPAGES];  // a per process array of fixed size=64 of pte_t  not pte_t pointers ! 
+frame_t *frame_table;
+deque<int> freelist;
+
 void readRandomNumbers(char *fname)
 {
   ifstream fin(fname);
@@ -54,7 +61,6 @@ void readInputFile(char* filename, vector<Process>& processes, vector<pair<char,
     while(line[0] == '#') getline(fin, line);
     int vmaNum = stoi(line);
     Process p(i);
-    p.page_table = new pte_t[MAX_VPAGES];
     // read vma for each process
     for (int j = 0; j < vmaNum; j++)
     {
@@ -77,21 +83,23 @@ void readInputFile(char* filename, vector<Process>& processes, vector<pair<char,
   
 }
 
- 
-frame_t *frame_table = new frame_t[MAX_FRAMES]; 
-pte_t *page_table = new pte_t[MAX_VPAGES];  // a per process array of fixed size=64 of pte_t  not pte_t pointers ! 
- 
-// class Pager { 
-//   virtual frame_t* select_victim_frame() = 0;   // virtual base class  
-// }; 
- 
-// frame_t *get_frame() { 
-//   frame_t *frame = allocate_frame_from_free_list(); 
-//   if (frame == NULL) frame = THE_PAGER->select_victim_frame(); 
-//        return frame; 
-// } 
-vector<pair<char, int> > instructions;
-vector<Process> processes;
+frame_t *allocate_frame_from_free_list(){
+  if (freelist.empty()) return NULL;
+  else
+  {
+    int fid = freelist.front();
+    freelist.pop_front();
+    return &frame_table[fid];
+  }
+}
+
+frame_t *get_frame() { 
+  frame_t *frame = allocate_frame_from_free_list(); 
+  if (frame == NULL) frame = THE_PAGER->select_victim_frame();
+  return frame; 
+} 
+
+
 void simulation(){
   for (int i=0; i<instructions.size(); i++)
   {
@@ -113,23 +121,70 @@ void simulation(){
       pte_t *pte = &current_process->page_table[vpage];
       if (!pte->present) { 
         VMA *vma_t = current_process->getAccessibleVMA(vpage);
-        if (!vma_t)
+        if (vma_t)
         {
           pte->file_map = vma_t->file_mapped;
           pte->write_protect = vma_t->write_protected;
         }
+        else
+        {
+          printf(" SEGV\n");
+          continue;
+        }
+        
         // this in reality generates the page fault exception and now you execute 
         // verify this is actually a valid page in a vma if not raise error and next inst  
-        // frame_t *newframe = get_frame(); 
+        frame_t *newframe = get_frame(); 
+        if (newframe->mapped)
+        {
+          printf(" UNMAP %d:%d\n", newframe->pid, newframe->vpage);
+          pte_t _pte = processes[newframe->pid].page_table[newframe->vpage];
+          if (_pte.modified) {
+            if (_pte.file_map) {
+              printf(" FOUT\n");
+            }
+            else {
+              printf(" OUT\n");
+            }
+          }
+        }
+        if (pte->pageout)
+        {
+          printf(" IN\n");
+        }
+        else if (pte->file_map)
+        {
+          printf(" FIN\n");
+        }
+        else
+        {
+          printf(" ZERO\n");
+        }
+        pte->frameIndex = newframe->index;
+        pte->present = 1;
 
-        //-> figure out if/what to do with old frame if it was mapped 
-        //   see general outline in MM-slides under Lab3 header and writeup below 
-        //   see whether and how to bring in the content of the access page. 
+        newframe->pid = current_process->pid;
+        newframe->vpage = vpage;
+        newframe->mapped = 1;
+        printf(" MAP %d\n", pte->frameIndex);
       } 
+      // check write protection 
+      // simulate instruction execution by hardware by updating the R/M PTE bits  
+      // update_pte(read/modify) bits based on operations.
+      if (operation == 'r') {
+        pte->referenced = 1;
+      }
+      else if (operation=='w') {
+        pte->referenced=1;
+        if (pte->write_protect) {
+          printf(" SEGPROT\n");
+        }
+        else {
+          pte->modified = 1;
+        }
+      }
     }
-  //       // check write protection 
-  //       // simulate instruction execution by hardware by updating the R/M PTE bits  
-  //       update_pte(read/modify) bits based on operations.   
+
   }
 }
 
@@ -143,20 +198,21 @@ int main(int argc, char **argv)
     case 'f':
         MAX_FRAMES=stoi(optarg);
         break;
-    case 'o':
-      break;
     case 'a':
     {
-    //   switch (type)
-    //   {
-    //   case 'F':
-    //     break;
-    //   default:
-    //     break;
-    //   }
+      string type(optarg);
+      switch (type[0])
+      {
+      case 'f':
+        THE_PAGER = new FCFS;
+        break;
+      default:
+        break;
+      }
       break;
     }
-
+    case 'o':
+      break;
     case '?':
       if (optopt == 'o')
         fprintf(stderr, "Option -%c requires an argument.\n", optopt);
@@ -168,6 +224,16 @@ int main(int argc, char **argv)
     default:
       abort();
     }
+  frame_table = new frame_t[MAX_FRAMES];
+  for (int i = 0; i < MAX_FRAMES; i++)
+  {
+    frame_table[i].index=i;
+    frame_table[i].mapped=0;
+    frame_table[i].pid=-1;
+    frame_table[i].vpage=-1;
+    freelist.push_back(i);
+  }
+  
   char *infile = argv[optind], *randfile = argv[optind + 1];
   readRandomNumbers(randfile);
   readInputFile(infile, processes, instructions);
