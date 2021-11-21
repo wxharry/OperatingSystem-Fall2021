@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
+#include <bits/getopt_core.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -25,7 +26,8 @@ Pager *THE_PAGER;
 pte_t *page_table = new pte_t[MAX_VPAGES];  // a per process array of fixed size=64 of pte_t  not pte_t pointers ! 
 frame_t *frame_table;
 deque<int> freelist;
-
+bool verbose=false;
+bool pagetableOpt=false;
 void readRandomNumbers(char *fname)
 {
   ifstream fin(fname);
@@ -104,7 +106,7 @@ void simulation(){
   for (int i=0; i<instructions.size(); i++)
   {
     auto ins = instructions[i];
-    printf("%d: ==> %c %d\n", i, ins.first, ins.second);
+    if(verbose) printf("%d: ==> %c %d\n", i, ins.first, ins.second);
     Process *current_process;
     int vpage;
     char operation=ins.first;
@@ -128,7 +130,8 @@ void simulation(){
         }
         else
         {
-          printf(" SEGV\n");
+          if(verbose) printf(" SEGV\n");
+          current_process->segv++;
           continue;
         }
         
@@ -137,28 +140,40 @@ void simulation(){
         frame_t *newframe = get_frame(); 
         if (newframe->mapped)
         {
-          printf(" UNMAP %d:%d\n", newframe->pid, newframe->vpage);
-          pte_t _pte = processes[newframe->pid].page_table[newframe->vpage];
-          if (_pte.modified) {
-            if (_pte.file_map) {
-              printf(" FOUT\n");
+          if(verbose) printf(" UNMAP %d:%d\n", newframe->pid, newframe->vpage);
+          current_process->unmaps++;
+          pte_t *_pte = &processes[newframe->pid].page_table[newframe->vpage];
+          if (_pte->modified) {
+            if (_pte->file_map) {
+              if(verbose) printf(" FOUT\n");
+              processes[newframe->pid].fouts++;
             }
             else {
-              printf(" OUT\n");
+              if(verbose) printf(" OUT\n");
+              processes[newframe->pid].outs++;
+              _pte->pageout=1;
             }
           }
+          _pte->present=0;
+          _pte->referenced=0;
+          _pte->modified=0;
+          _pte->frameIndex=0;
         }
+
         if (pte->pageout)
         {
-          printf(" IN\n");
+          if(verbose) printf(" IN\n");
+          current_process->ins++;
         }
         else if (pte->file_map)
         {
-          printf(" FIN\n");
+          if(verbose) printf(" FIN\n");
+          current_process->fins++;
         }
         else
         {
-          printf(" ZERO\n");
+          if(verbose) printf(" ZERO\n");
+          current_process->zeros++;
         }
         pte->frameIndex = newframe->index;
         pte->present = 1;
@@ -166,7 +181,8 @@ void simulation(){
         newframe->pid = current_process->pid;
         newframe->vpage = vpage;
         newframe->mapped = 1;
-        printf(" MAP %d\n", pte->frameIndex);
+        if(verbose) printf(" MAP %d\n", pte->frameIndex);
+        current_process->maps++;
       } 
       // check write protection 
       // simulate instruction execution by hardware by updating the R/M PTE bits  
@@ -177,7 +193,8 @@ void simulation(){
       else if (operation=='w') {
         pte->referenced=1;
         if (pte->write_protect) {
-          printf(" SEGPROT\n");
+          if(verbose) printf(" SEGPROT\n");
+          current_process->segprot++;
         }
         else {
           pte->modified = 1;
@@ -212,13 +229,18 @@ int main(int argc, char **argv)
       break;
     }
     case 'o':
+    {
+      string type(optarg);
+      for (char &ch : type) {
+        switch (ch) {
+        case 'O':{verbose=true;break;}
+        case 'P':{pagetableOpt=true;break;}
+        }
+      }
+
       break;
+    }
     case '?':
-      if (optopt == 'o')
-        fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-      else if (isprint(optopt))
-        fprintf(stderr, "Unknown option `-%c'.\n", optopt);
-      else
         fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
       return 1;
     default:
@@ -238,5 +260,30 @@ int main(int argc, char **argv)
   readRandomNumbers(randfile);
   readInputFile(infile, processes, instructions);
   simulation();
+  if (pagetableOpt) {
+    for (int i=0; i<processes.size(); i++) {
+      Process* proc = &processes[i];
+      printf("PT[%d]:", proc->pid);
+      for (int j=0; j < MAX_VPAGES; j++) {
+        pte_t* pte = &proc->page_table[j];
+        printf(" ");
+        if (pte->present) {
+          printf("%d:%c%c%c", j, pte->referenced?'R':'-', pte->modified?'M':'-',pte->pageout?'S':'-');
+        }
+        else {
+          printf("%c", pte->pageout?'#':'*');
+        }
+      }
+      printf("\n");
+    }
+  }
+  for (int i=0; i < processes.size(); i++) {
+    Process* proc = &processes[i];
+    printf("PROC[%d]: U=%lu M=%lu I=%lu O=%lu FI=%lu FO=%lu Z=%lu SV=%lu SP=%lu\n", 
+                proc->pid, 
+                proc->unmaps, proc->maps, proc->ins, proc->outs, 
+                proc->fins, proc->fouts, proc->zeros, 
+                proc->segv, proc->segprot); 
+  }
   return 0;
 }

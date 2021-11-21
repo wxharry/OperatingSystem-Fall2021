@@ -8,7 +8,7 @@ FRAMES = 4
 FLAGS = -f$(FRAMES) -af -oOPFS
 INPUTFILE = ./inputs/in$(NUM)
 RANDOMFILE = ./inputs/rfile
-OUTPUTFILE = out$(NUM)_16_a
+OUTPUTFILE = out$(NUM)_16_f
 
 rwildcard = $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) \
   $(filter $(subst *,%,$2),$d))
