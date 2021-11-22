@@ -25,6 +25,7 @@ Process::Process(int id){
     page_table[i].present=0;
     page_table[i].referenced=0;
     page_table[i].write_protect=0;
+    page_table[i].empty=0;
   }
 }
 
@@ -39,6 +40,7 @@ Process::Process(){
     page_table[i].present=0;
     page_table[i].referenced=0;
     page_table[i].write_protect=0;
+    page_table[i].empty=0;
   }
 }
 

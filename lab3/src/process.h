@@ -2,13 +2,14 @@
 using namespace std;
 
 typedef struct {
-  unsigned present;
-  unsigned referenced;
-  unsigned modified;
-  unsigned write_protect;
-  unsigned file_map;
-  unsigned pageout;
-  unsigned frameIndex;
+  unsigned int present:1;
+  unsigned int referenced:1;
+  unsigned int modified:1;
+  unsigned int write_protect:1;
+  unsigned int file_map:1;
+  unsigned int pageout:1;
+  unsigned int frameIndex:16;
+  unsigned int empty:10;
 } pte_t;          // can only be total of 32-bit size and will check on this 
 
 

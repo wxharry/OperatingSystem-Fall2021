@@ -28,6 +28,14 @@ frame_t *frame_table;
 deque<int> freelist;
 bool verbose=false;
 bool pagetableOpt=false;
+bool frametableOpt=false;
+bool summaryOpt=false;
+long inst_count=0;
+long ctx_switches=0;
+long process_exits=0;
+long rw_count=0;
+long long cost=0;
+
 void readRandomNumbers(char *fname)
 {
   ifstream fin(fname);
@@ -112,13 +120,15 @@ void simulation(){
     char operation=ins.first;
     if(operation=='c'){
       current_process = &processes[ins.second];
+      ++ctx_switches;
     }
     else if (operation=='e')
     {
-
+      ++process_exits;
     }
     else
     {
+      ++rw_count;
       vpage=ins.second;
       pte_t *pte = &current_process->page_table[vpage];
       if (!pte->present) { 
@@ -141,7 +151,7 @@ void simulation(){
         if (newframe->mapped)
         {
           if(verbose) printf(" UNMAP %d:%d\n", newframe->pid, newframe->vpage);
-          current_process->unmaps++;
+          processes[newframe->pid].unmaps++;
           pte_t *_pte = &processes[newframe->pid].page_table[newframe->vpage];
           if (_pte->modified) {
             if (_pte->file_map) {
@@ -235,6 +245,8 @@ int main(int argc, char **argv)
         switch (ch) {
         case 'O':{verbose=true;break;}
         case 'P':{pagetableOpt=true;break;}
+        case 'F':{frametableOpt=true;break;}
+        case 'S':{summaryOpt=true;break;}
         }
       }
 
@@ -277,13 +289,32 @@ int main(int argc, char **argv)
       printf("\n");
     }
   }
-  for (int i=0; i < processes.size(); i++) {
-    Process* proc = &processes[i];
-    printf("PROC[%d]: U=%lu M=%lu I=%lu O=%lu FI=%lu FO=%lu Z=%lu SV=%lu SP=%lu\n", 
-                proc->pid, 
-                proc->unmaps, proc->maps, proc->ins, proc->outs, 
-                proc->fins, proc->fouts, proc->zeros, 
-                proc->segv, proc->segprot); 
+  if (frametableOpt) {
+    printf("FT:");
+    for (int i=0; i<MAX_FRAMES; i++) {
+      if (frame_table[i].mapped) {
+        printf(" %d:%d", frame_table[i].pid, frame_table[i].vpage);
+      }
+      else {
+        printf(" *");
+      }
+    }
+    printf("\n");
   }
+  if (summaryOpt) {
+    for (int i=0; i < processes.size(); i++) {
+      Process* proc = &processes[i];
+      printf("PROC[%d]: U=%lu M=%lu I=%lu O=%lu FI=%lu FO=%lu Z=%lu SV=%lu SP=%lu\n", 
+                  proc->pid, 
+                  proc->unmaps, proc->maps, proc->ins, proc->outs, 
+                  proc->fins, proc->fouts, proc->zeros, 
+                  proc->segv, proc->segprot);
+      cost += proc->maps*300 + proc->unmaps*400 + proc->ins*3100 + proc->outs*2700 + proc->fins*2800 + proc->fouts*2400 + proc->zeros*140 + proc->segv*340 + proc->segprot*420;
+    }
+    inst_count = instructions.size();
+    cost += rw_count*1 + ctx_switches*130 + process_exits*1250;
+    printf("TOTALCOST %lu %lu %lu %llu %lu\n", inst_count, ctx_switches, process_exits, cost, sizeof(pte_t)); 
+  }
+
   return 0;
 }

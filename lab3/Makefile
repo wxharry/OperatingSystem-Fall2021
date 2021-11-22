@@ -1,14 +1,15 @@
 CC=g++
 CFLAGS=-I.
 TARGET = mmu
-NUM=1
 OBJ_DIR   = objects
 SRC       = $(call rwildcard, src, *.cpp, *.h)
-FRAMES = 4
-FLAGS = -f$(FRAMES) -af -oOPFS
+NUM = 11
+FRAMES = 16
+ALGO = f
+FLAGS = -f$(FRAMES) -a$(ALGO) -oOPFS
 INPUTFILE = ./inputs/in$(NUM)
 RANDOMFILE = ./inputs/rfile
-OUTPUTFILE = out$(NUM)_16_f
+OUTPUTFILE = out$(NUM)_$(FRAMES)_$(ALGO)
 
 rwildcard = $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) \
   $(filter $(subst *,%,$2),$d))
