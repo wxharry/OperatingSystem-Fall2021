@@ -125,6 +125,30 @@ void simulation(){
     else if (operation=='e')
     {
       ++process_exits;
+      printf("EXIT current process %d\n", current_process->pid);
+      for (int i=0; i < MAX_VPAGES; i++) {
+        pte_t *p = &current_process->page_table[i];
+        if (p->present) {
+          if(verbose) printf(" UNMAP %d:%d\n", current_process->pid, i);
+          ++current_process->unmaps;
+          if (p->modified && p->file_map) {
+              if(verbose) printf(" FOUT\n");
+              current_process->fouts++;
+          }
+          frame_table[p->frameIndex].mapped=0;
+          frame_table[p->frameIndex].pid=-1;
+          frame_table[p->frameIndex].vpage=-1;
+          freelist.push_back(frame_table[p->frameIndex].index);
+        }
+        p->present = 0;
+        p->referenced = 0;
+        p->modified = 0;
+        p->write_protect = 0;
+        p->pageout = 0;
+        p->file_map = 0;
+      }
+      current_process = NULL;
+      continue;
     }
     else
     {
