@@ -3,9 +3,9 @@ CFLAGS=-I.
 TARGET = mmu
 OBJ_DIR   = objects
 SRC       = $(call rwildcard, src, *.cpp, *.h)
-NUM = 11
+NUM = 1
 FRAMES = 16
-ALGO = f
+ALGO = c
 FLAGS = -f$(FRAMES) -a$(ALGO) -oOPFS
 INPUTFILE = ./inputs/in$(NUM)
 RANDOMFILE = ./inputs/rfile
@@ -33,8 +33,8 @@ run: $(TARGET)
 	./$(TARGET) $(FLAGS) $(INPUTFILE) $(RANDOMFILE) 
 
 diff:
-	@make -s run >  ./myoutput/$(OUTPUTFILE)
-	@diff myoutput/$(OUTPUTFILE) refout/$(OUTPUTFILE) > diff.txt
+	@make -s run >  ./myoutputs/$(OUTPUTFILE)
+	diff myoutput/$(OUTPUTFILE) refout/$(OUTPUTFILE) > diff.txt
 
 .PHONY: all build clean debug release
 

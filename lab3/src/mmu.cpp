@@ -257,6 +257,9 @@ int main(int argc, char **argv)
       case 'f':
         THE_PAGER = new FCFS;
         break;
+      case 'c':
+        THE_PAGER = new CLOCK;
+        break;
       default:
         break;
       }

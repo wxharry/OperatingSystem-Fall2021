@@ -24,5 +24,12 @@ public:
   frame_t* select_victim_frame();
 };
 
+class CLOCK: public Pager
+{
+public:
+  int hand;
 
+  CLOCK();
+  frame_t* select_victim_frame();
+};
 
