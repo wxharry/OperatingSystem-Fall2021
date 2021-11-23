@@ -219,6 +219,7 @@ void simulation(){
         newframe->mapped = 1;
         if(verbose) printf(" MAP %d\n", pte->frameIndex);
         current_process->maps++;
+        newframe->age=0;
       } 
       // check write protection 
       // simulate instruction execution by hardware by updating the R/M PTE bits  
@@ -260,6 +261,7 @@ int main(int argc, char **argv)
       case 'r':{THE_PAGER = new Random;break;}
       case 'c':{THE_PAGER = new Clock;break;}
       case 'e':{THE_PAGER = new NRU;break;}
+      case 'a':{THE_PAGER = new Aging;break;}
       default:
         break;
       }

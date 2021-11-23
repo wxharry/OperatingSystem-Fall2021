@@ -85,3 +85,29 @@ frame_t* NRU::select_victim_frame(){
     }
     return NULL;
 }
+
+Aging::Aging(){
+    hand=0;
+}
+
+frame_t* Aging::select_victim_frame(){
+    frame_t *victum=NULL;
+    for (int i=0; i < MAX_FRAMES; i++) {
+        frame_t* f=&frame_table[hand];
+        f->age >>= 1;
+        if (processes[f->pid].page_table[f->vpage].referenced) {
+            f->age |= 0x80000000;
+            processes[f->pid].page_table[f->vpage].referenced = 0;
+        }
+        if (!f->age) {
+            return f;
+        }
+        if (!victum || f->age < victum->age) {
+            victum = f;
+        }
+        // printf("debugging\n");
+        hand = (hand+1)%MAX_FRAMES;
+    }
+    hand = (victum->index + 1)%MAX_FRAMES;
+    return victum;
+}
