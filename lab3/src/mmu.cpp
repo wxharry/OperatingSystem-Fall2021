@@ -115,6 +115,7 @@ void simulation(){
   for (int i=0; i<instructions.size(); i++)
   {
     auto ins = instructions[i];
+    ++ inst_count;
     if(verbose) printf("%d: ==> %c %d\n", i, ins.first, ins.second);
     Process *current_process;
     int vpage;
@@ -258,6 +259,7 @@ int main(int argc, char **argv)
       case 'f':{THE_PAGER = new FCFS;break;}
       case 'r':{THE_PAGER = new Random;break;}
       case 'c':{THE_PAGER = new Clock;break;}
+      case 'e':{THE_PAGER = new NRU;break;}
       default:
         break;
       }
@@ -336,7 +338,6 @@ int main(int argc, char **argv)
                   proc->segv, proc->segprot);
       cost += proc->maps*300 + proc->unmaps*400 + proc->ins*3100 + proc->outs*2700 + proc->fins*2800 + proc->fouts*2400 + proc->zeros*140 + proc->segv*340 + proc->segprot*420;
     }
-    inst_count = instructions.size();
     cost += rw_count*1 + ctx_switches*130 + process_exits*1250;
     printf("TOTALCOST %lu %lu %lu %llu %lu\n", inst_count, ctx_switches, process_exits, cost, sizeof(pte_t)); 
   }

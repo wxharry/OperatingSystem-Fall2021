@@ -5,8 +5,9 @@ OBJ_DIR   = objects
 SRC       = $(call rwildcard, src, *.cpp, *.h)
 NUM = 1
 FRAMES = 16
-ALGO = c
-FLAGS = -f$(FRAMES) -a$(ALGO) -oOPFS
+ALGO = e
+OPTS = OPFS
+FLAGS = -f$(FRAMES) -a$(ALGO) -o$(OPTS)
 INPUTFILE = ./inputs/in$(NUM)
 RANDOMFILE = ./inputs/rfile
 OUTPUTFILE = out$(NUM)_$(FRAMES)_$(ALGO)
@@ -34,7 +35,7 @@ run: $(TARGET)
 
 diff:
 	@make -s run >  ./myoutputs/$(OUTPUTFILE)
-	diff myoutput/$(OUTPUTFILE) refout/$(OUTPUTFILE) > diff.txt
+	diff myoutputs/$(OUTPUTFILE) refout/$(OUTPUTFILE) > diff.txt
 
 .PHONY: all build clean debug release
 

@@ -6,6 +6,7 @@ extern int MAX_FRAMES;
 extern frame_t *frame_table;
 extern vector<Process> processes;
 extern int myrandom(int num);
+extern long inst_count;
 FCFS::FCFS()
 {
     int hand = 0;
@@ -23,7 +24,6 @@ Random::Random(){
 
 frame_t* Random::select_victim_frame (){
     hand = myrandom(MAX_FRAMES);
-    // printf("%d %d\n", hand, MAX_FRAMES);
     frame_t* victim = &frame_table[hand];
     return victim;
 }
@@ -49,3 +49,39 @@ frame_t* Clock::select_victim_frame(){
     }
 }
 
+NRU::NRU()
+{
+    long lastCount=0;
+    int period=50;
+    int hand = 0;
+}
+
+frame_t* NRU::select_victim_frame(){
+    vector<int> classes(4, -1);
+    bool reset = inst_count-lastCount >= period;
+    if (reset) {
+        lastCount = inst_count;
+    }
+    for (int i=0; i < MAX_FRAMES; i++) {
+        frame_t f=frame_table[hand];
+        Process p = processes[f.pid];
+        pte_t *pte = &p.page_table[f.vpage];
+        int c=pte->referenced * 2 + pte->modified;
+        if (classes[c]==-1) {
+            classes[c] = hand;
+        }
+        if (reset) {
+            pte->referenced=0;
+        }else if (!c) {
+            break;
+        }
+        hand = (hand+1)%MAX_FRAMES;
+    }
+    for (int i=0; i < 4; i++) {
+        if (classes[i] >= 0) {
+            hand = (classes[i] + 1) % MAX_FRAMES;
+            return &frame_table[classes[i]];
+        }
+    }
+    return NULL;
+}

@@ -42,3 +42,13 @@ public:
   frame_t* select_victim_frame();
 };
 
+class NRU: public Pager
+{
+public:
+  int hand;
+  long lastCount=0;
+  int period=50;
+  
+  NRU();
+  frame_t* select_victim_frame();
+};
