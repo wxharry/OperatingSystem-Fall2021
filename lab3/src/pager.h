@@ -24,12 +24,21 @@ public:
   frame_t* select_victim_frame();
 };
 
-class CLOCK: public Pager
+class Random: public Pager
 {
 public:
   int hand;
 
-  CLOCK();
+  Random();
+  frame_t* select_victim_frame();
+};
+
+class Clock: public Pager
+{
+public:
+  int hand;
+
+  Clock();
   frame_t* select_victim_frame();
 };
 

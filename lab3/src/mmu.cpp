@@ -18,7 +18,8 @@ using namespace std;
 
 int MAX_FRAMES=128;
 int MAX_VPAGES=64;
-int ofs;
+int totalRandomNum;
+int currentRandomNum=0;
 vector<int> randvals;
 vector<pair<char, int> > instructions;
 vector<Process> processes;
@@ -41,8 +42,8 @@ void readRandomNumbers(char *fname)
   ifstream fin(fname);
   string line;
   int i = 0;
-  fin >> ofs;
-  while (i < ofs)
+  fin >> totalRandomNum;
+  while (i < totalRandomNum)
   {
     fin >> line;
     randvals.push_back(atoi(line.c_str()));
@@ -54,7 +55,7 @@ void readRandomNumbers(char *fname)
 
 int myrandom(int num)
 {
-  return 1 + (randvals[ofs] % num);
+  return randvals[currentRandomNum++] % num;
 }
 
 void readInputFile(char* filename, vector<Process>& processes, vector<pair<char, int> >& instructions){
@@ -254,12 +255,9 @@ int main(int argc, char **argv)
       string type(optarg);
       switch (type[0])
       {
-      case 'f':
-        THE_PAGER = new FCFS;
-        break;
-      case 'c':
-        THE_PAGER = new CLOCK;
-        break;
+      case 'f':{THE_PAGER = new FCFS;break;}
+      case 'r':{THE_PAGER = new Random;break;}
+      case 'c':{THE_PAGER = new Clock;break;}
       default:
         break;
       }
