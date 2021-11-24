@@ -6,7 +6,7 @@ typedef struct {
   bool mapped = false;
   int index;
   unsigned int age : 32;
-  // unsigned int timestamp = 0;
+  unsigned int lastUseTime = 0;
 } frame_t;
 
 class Pager 
@@ -59,5 +59,15 @@ public:
   int hand;
   
   Aging();
+  frame_t* select_victim_frame();
+};
+
+class WorkingSet: public Pager
+{
+public:
+  int hand;
+  int tau;
+
+  WorkingSet();
   frame_t* select_victim_frame();
 };

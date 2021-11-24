@@ -105,9 +105,41 @@ frame_t* Aging::select_victim_frame(){
         if (!victum || f->age < victum->age) {
             victum = f;
         }
-        // printf("debugging\n");
         hand = (hand+1)%MAX_FRAMES;
     }
     hand = (victum->index + 1)%MAX_FRAMES;
     return victum;
+}
+
+WorkingSet::WorkingSet(){
+    hand=0;
+    tau=49;
+}
+
+frame_t* WorkingSet::select_victim_frame(){
+    frame_t* victum;
+    frame_t* oldestFrame=NULL;
+    for (int i=0; i < MAX_FRAMES+1; i++) {
+        frame_t *f = &frame_table[hand];
+        pte_t* p = &processes[f->pid].page_table[f->vpage];
+        if (p->referenced) {
+            f->lastUseTime=inst_count;
+            p->referenced=0;
+        }
+        else 
+        {
+            if (inst_count - f->lastUseTime > tau) {
+                victum=f;
+                hand = (hand+1)%MAX_FRAMES;
+                return f;
+            }
+            else if(!oldestFrame||f->lastUseTime < oldestFrame->lastUseTime){
+
+                oldestFrame=f;
+            }
+        }
+        hand = (hand+1)%MAX_FRAMES;
+    }
+    hand = (oldestFrame->index+1)%MAX_FRAMES;
+    return oldestFrame;
 }

@@ -220,6 +220,7 @@ void simulation(){
         if(verbose) printf(" MAP %d\n", pte->frameIndex);
         current_process->maps++;
         newframe->age=0;
+        newframe->lastUseTime=inst_count;
       } 
       // check write protection 
       // simulate instruction execution by hardware by updating the R/M PTE bits  
@@ -262,6 +263,7 @@ int main(int argc, char **argv)
       case 'c':{THE_PAGER = new Clock;break;}
       case 'e':{THE_PAGER = new NRU;break;}
       case 'a':{THE_PAGER = new Aging;break;}
+      case 'w':{THE_PAGER = new WorkingSet;break;}
       default:
         break;
       }
@@ -294,6 +296,7 @@ int main(int argc, char **argv)
     frame_table[i].mapped=0;
     frame_table[i].pid=-1;
     frame_table[i].vpage=-1;
+    frame_table[i].lastUseTime=0;
     freelist.push_back(i);
   }
   
