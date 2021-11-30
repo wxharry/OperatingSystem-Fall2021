@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
-#include <bits/getopt_core.h>
 #include <iostream>
 #include <fstream>
 #include <string>
