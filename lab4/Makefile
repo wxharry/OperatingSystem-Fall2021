@@ -5,7 +5,7 @@ OBJ_DIR   = objects
 SRC       = $(call rwildcard, src, *.cpp, *.h)
 NUM = 0
 ALGO = j
-FLAGS = -s$(ALGO)
+FLAGS = 
 INPUTFILE = ./lab4_assign/input$(NUM)
 OUTPUTFILE = out_$(NUM)_$(ALGO)
 
@@ -28,7 +28,7 @@ build:
 	@mkdir -p $(OBJ_DIR)
 
 run: $(TARGET)
-	./$(TARGET) $(FLAGS) $(INPUTFILE)
+	./$(TARGET) -s$(ALGO) $(FLAGS) $(INPUTFILE)
 
 diff:
 	@make -s run >  ./myoutputs/$(OUTPUTFILE)

@@ -37,12 +37,14 @@ void simulation()
     int currentTime = 0;
     IORequests* currentRequest=NULL;
     int currentTrack = 0;
+    int direction=0;
     char ch;
     while (true)
     {
         // cout << "current time " << currentTime << endl;
         // cout << "current request " << currentRequest << endl;
         // cout << "current track " << currentTrack << endl;
+        // cout << "current direction " << direction << endl;
         // ch = getchar();
         if (currentTime == requests[i].arriveTime)
         {
@@ -62,7 +64,7 @@ void simulation()
             // issue a new request
             if (!(scheduler->IOQueue.empty()))
             {
-                currentRequest = scheduler->getNextRequest(currentTrack);
+                currentRequest = scheduler->getNextRequest(currentTrack, direction);
                 currentRequest->startTime = currentTime;
                 if(VERBOSE) printf("%5d: %5d issue %5d %5d\n", currentTime, currentRequest->id, currentRequest->track, currentTrack);
                 continue;
@@ -78,10 +80,12 @@ void simulation()
             if (currentRequest->track > currentTrack)
             {
                 ++currentTrack;
+                direction = 1;
             }
             else
             {
                 --currentTrack;
+                direction = -1;
             }
             ++ tot_movement;
         }
@@ -102,7 +106,7 @@ int main(int argc, char **argv)
             {
                   case 'i':{scheduler = new FIFO;break;}
                   case 'j':{scheduler = new SSTF;break;}
-                //   case 's':{THE_PAGER = new Random;break;}
+                  case 's':{scheduler = new LOOK;break;}
                 //   case 'c':{THE_PAGER = new Clock;break;}
                 //   case 'f':{THE_PAGER = new NRU;break;}
             }
