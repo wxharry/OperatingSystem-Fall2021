@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <unistd.h>
 #include <vector>
 #include <deque>
@@ -8,6 +9,7 @@ using namespace std;
 
 IOScheduler *scheduler;
 bool VERBOSE = false;
+bool DEBUGGING = false;
 deque<IORequests> requests;
 int total_time=0;
 int tot_movement=0;
@@ -16,6 +18,9 @@ float avg_waittime=0;
 int max_waittime=0;
 double tot_waittime=0;
 double tot_turnaround=0;
+
+int currentTrack = 0;
+int direction=0;
 void readInputFile(char *filename)
 {
     ifstream fin(filename);
@@ -36,16 +41,17 @@ void simulation()
     int i=0;
     int currentTime = 0;
     IORequests* currentRequest=NULL;
-    int currentTrack = 0;
-    int direction=0;
-    char ch;
+    char ch='\n';
+    int target=-1;
     while (true)
     {
-        // cout << "current time " << currentTime << endl;
-        // cout << "current request " << currentRequest << endl;
-        // cout << "current track " << currentTrack << endl;
-        // cout << "current direction " << direction << endl;
-        // ch = getchar();
+        if(DEBUGGING){
+            cout << "current time " << currentTime << endl;
+            cout << "current track " << currentTrack << endl;
+            cout << "current direction " << direction << endl;
+            if(currentRequest)
+                cout << "current request " << currentRequest->id << endl;
+        }
         if (currentTime == requests[i].arriveTime)
         {
             IORequests* r = &requests[i++];
@@ -64,7 +70,7 @@ void simulation()
             // issue a new request
             if (!(scheduler->IOQueue.empty()))
             {
-                currentRequest = scheduler->getNextRequest(currentTrack, direction);
+                currentRequest = scheduler->getNextRequest();
                 currentRequest->startTime = currentTime;
                 if(VERBOSE) printf("%5d: %5d issue %5d %5d\n", currentTime, currentRequest->id, currentRequest->track, currentTrack);
                 continue;
@@ -80,23 +86,52 @@ void simulation()
             if (currentRequest->track > currentTrack)
             {
                 ++currentTrack;
-                direction = 1;
             }
             else
             {
                 --currentTrack;
-                direction = -1;
             }
             ++ tot_movement;
         }
         ++currentTime;
+        if (DEBUGGING)
+        if(ch != 'l' && target < currentTime)
+        {
+            string line="";
+            while (ch = getchar())
+            {
+                if(ch == '\n') break;
+                if (ch == 'e'){
+                    DEBUGGING = false;
+                    ch = 'e';
+                    break;
+                }
+                else if (ch == 'l')
+                {
+                    ch = 'l';
+                    break;
+                }
+                else if(isdigit(ch)){
+                    line += ch;
+                }
+                else if (ch == 'q')
+                {
+                    exit(0);
+                }
+                
+            }
+            if(line != "")target=stoi(line);
+        }
+        else{
+            cout << endl;
+        }
     }
 }
 
 int main(int argc, char **argv)
 {
     int c;
-    while ((c = getopt(argc, argv, "s:vqf")) != -1)
+    while ((c = getopt(argc, argv, "s:vqfd")) != -1)
         switch (c)
         {
         case 's':
@@ -107,7 +142,7 @@ int main(int argc, char **argv)
                   case 'i':{scheduler = new FIFO;break;}
                   case 'j':{scheduler = new SSTF;break;}
                   case 's':{scheduler = new LOOK;break;}
-                //   case 'c':{THE_PAGER = new Clock;break;}
+                  case 'c':{scheduler = new CLOOK;break;}
                 //   case 'f':{THE_PAGER = new NRU;break;}
             }
             break;
@@ -117,6 +152,8 @@ int main(int argc, char **argv)
         case 'q':
         case 'f':
             break;
+        case 'd':
+            DEBUGGING = true;break;
         case '?':
             fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
             return 1;
