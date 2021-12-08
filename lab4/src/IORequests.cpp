@@ -84,7 +84,6 @@ IORequests* LOOK::getNextRequest()
         {
             IORequests* r = IOQueue[i];
             IOQueue.erase(IOQueue.begin()+i);
-            direction = r->track > currentTrack ? 1 : -1;
             return r;
         }
         else if(direction > 0 && IOQueue[i]->track - currentTrack > 0)
@@ -114,7 +113,6 @@ IORequests* LOOK::getNextRequest()
     }
     IORequests* r = IOQueue[minIdx];
     IOQueue.erase(IOQueue.begin()+minIdx);
-    direction = r->track > currentTrack ? 1 : -1;
     return r;
 }
 
