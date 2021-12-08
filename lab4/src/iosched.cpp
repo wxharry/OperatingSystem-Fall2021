@@ -62,9 +62,10 @@ void simulation()
             // issue a new request
             if (!(scheduler->IOQueue.empty()))
             {
-                currentRequest = scheduler->getNextRequest();
+                currentRequest = scheduler->getNextRequest(currentTrack);
                 currentRequest->startTime = currentTime;
                 if(VERBOSE) printf("%5d: %5d issue %5d %5d\n", currentTime, currentRequest->id, currentRequest->track, currentTrack);
+                continue;
             }
             else if(i == requests.size())
             {
@@ -100,7 +101,7 @@ int main(int argc, char **argv)
             switch (type[0])
             {
                   case 'i':{scheduler = new FIFO;break;}
-                //   case 'j':{THE_PAGER = new FCFS;break;}
+                  case 'j':{scheduler = new SSTF;break;}
                 //   case 's':{THE_PAGER = new Random;break;}
                 //   case 'c':{THE_PAGER = new Clock;break;}
                 //   case 'f':{THE_PAGER = new NRU;break;}

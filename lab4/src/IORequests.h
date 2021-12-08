@@ -20,7 +20,7 @@ public:
     deque<IORequests* > IOQueue;
     string type;
     virtual void addQueue(IORequests* r)=0;
-    virtual IORequests* getNextRequest()=0;
+    virtual IORequests* getNextRequest(int currentTrack)=0;
 };
 
 class FIFO: public IOScheduler
@@ -28,5 +28,13 @@ class FIFO: public IOScheduler
 public:
     string type = "FIFO";
     void addQueue(IORequests* r);
-    IORequests* getNextRequest();
+    IORequests* getNextRequest(int currentTrack);
+};
+
+class SSTF: public IOScheduler
+{
+public:
+    string type = "SSTF";
+    void addQueue(IORequests* r);
+    IORequests* getNextRequest(int currentTrack);
 };
