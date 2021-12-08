@@ -18,9 +18,9 @@ class IOScheduler
 {
 public:
     deque<IORequests* > IOQueue;
-    string type;
     virtual void addQueue(IORequests* r)=0;
     virtual IORequests* getNextRequest()=0;
+    virtual bool isPending()=0;
 };
 
 class FIFO: public IOScheduler
@@ -28,6 +28,7 @@ class FIFO: public IOScheduler
 public:
     void addQueue(IORequests* r);
     IORequests* getNextRequest();
+    virtual bool isPending();
 };
 
 class SSTF: public IOScheduler
@@ -35,6 +36,7 @@ class SSTF: public IOScheduler
 public:
     void addQueue(IORequests* r);
     IORequests* getNextRequest();
+    virtual bool isPending();
 };
 
 class LOOK: public IOScheduler
@@ -42,6 +44,7 @@ class LOOK: public IOScheduler
 public:
     void addQueue(IORequests* r);
     IORequests* getNextRequest();
+    virtual bool isPending();
 };
 
 class CLOOK: public IOScheduler
@@ -49,5 +52,14 @@ class CLOOK: public IOScheduler
 public:
     void addQueue(IORequests* r);
     IORequests* getNextRequest();
+    virtual bool isPending();
 };
 
+class FLOOK: public IOScheduler
+{
+public:
+    deque<IORequests* > AddQueue;
+    void addQueue(IORequests* r);
+    IORequests* getNextRequest();
+    virtual bool isPending();
+};

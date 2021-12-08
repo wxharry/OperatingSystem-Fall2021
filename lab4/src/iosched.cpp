@@ -68,7 +68,7 @@ void simulation()
         if (!currentRequest)
         {
             // issue a new request
-            if (!(scheduler->IOQueue.empty()))
+            if (scheduler->isPending())
             {
                 currentRequest = scheduler->getNextRequest();
                 currentRequest->startTime = currentTime;
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
                   case 'j':{scheduler = new SSTF;break;}
                   case 's':{scheduler = new LOOK;break;}
                   case 'c':{scheduler = new CLOOK;break;}
-                //   case 'f':{THE_PAGER = new NRU;break;}
+                  case 'f':{scheduler = new FLOOK;break;}
             }
             break;
         }

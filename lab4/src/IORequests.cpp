@@ -30,6 +30,9 @@ IORequests* FIFO::getNextRequest()
     IOQueue.pop_front();
     return r;
 }
+bool FIFO::isPending(){
+    return !IOQueue.empty();
+}
 
 // SSTF
 void SSTF::addQueue(IORequests* r)
@@ -54,6 +57,9 @@ IORequests* SSTF::getNextRequest()
     IORequests* r = IOQueue[minIdx];
     IOQueue.erase(IOQueue.begin()+minIdx);
     return r;
+}
+bool SSTF::isPending(){
+    return !IOQueue.empty();
 }
 
 // LOOK
@@ -116,6 +122,10 @@ IORequests* LOOK::getNextRequest()
     return r;
 }
 
+bool LOOK::isPending(){
+    return !IOQueue.empty();
+}
+
 // CLOOK
 void CLOOK::addQueue(IORequests* r)
 {
@@ -163,4 +173,75 @@ IORequests* CLOOK::getNextRequest()
     IORequests* r = IOQueue[minIdx];
     IOQueue.erase(IOQueue.begin()+minIdx);
     return r;    
+}
+
+bool CLOOK::isPending(){
+    return !IOQueue.empty();
+}
+
+void FLOOK::addQueue(IORequests* r)
+{
+    this->AddQueue.push_back(r);
+}
+
+IORequests* FLOOK::getNextRequest()
+{
+    if (IOQueue.empty() && AddQueue.empty())
+    {
+        return NULL;
+    }
+    if (IOQueue.empty())
+    {
+        swap(this->AddQueue, this->IOQueue);
+    }
+    // TO DO: fix logic mistake
+    if (direction == 0)
+    {
+        IORequests* r =  IOQueue.front();
+        IOQueue.pop_front();
+        direction = r->track > currentTrack ? 1 : -1;
+        return r;
+    }
+    int distance = MAX_TRACK;
+    int minIdx=-1;
+    for (int i = 0; i < IOQueue.size(); i++)
+    {
+        if(IOQueue[i]->track - currentTrack == 0)
+        {
+            IORequests* r = IOQueue[i];
+            IOQueue.erase(IOQueue.begin()+i);
+            return r;
+        }
+        else if(direction > 0 && IOQueue[i]->track - currentTrack > 0)
+        {
+            int dist = IOQueue[i]->track - currentTrack;
+            if ( dist < distance)
+            {
+                distance = dist;
+                minIdx = i;
+            }
+        }
+        else if (direction < 0 && currentTrack - IOQueue[i]->track > 0)
+        {
+            int dist = currentTrack - IOQueue[i]->track;
+            if ( dist < distance)
+            {
+                distance = dist;
+                minIdx = i;
+            }
+        }
+        
+    }
+    if (minIdx == -1)
+    {
+        direction = -direction;
+        return getNextRequest();
+    }
+    IORequests* r = IOQueue[minIdx];
+    IOQueue.erase(IOQueue.begin()+minIdx);
+    return r;
+}
+
+bool FLOOK::isPending(){
+    return !(IOQueue.empty() && AddQueue.empty());
 }
