@@ -151,6 +151,7 @@ IORequests* CLOOK::getNextRequest()
     }
     if (minIdx == -1)
     {
+        minIdx = 0;
         for (int i = 0; i < IOQueue.size(); i++)
         {
             if(IOQueue[i]->track < IOQueue[minIdx]->track)
